@@ -31,4 +31,4 @@ The following commands are available:
 
 # Acknowledgments
 
-This project was inspired by the [karma bot](<[https://](https://github.com/hbourgeot/karmagobot)>) ↗ from [hbourgeot](https://github.com/hbourgeot).
+This project was inspired by the [karma bot](https://github.com/hbourgeot/karmagobot) ↗ from [hbourgeot](https://github.com/hbourgeot).
