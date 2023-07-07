@@ -43,6 +43,8 @@ bot.on("message", async (msg) => {
   }
 
   if (msg.text === "-1" && msg.reply_to_message) {
+    if (msg.reply_to_message.from.id === msg.from.id) return;
+
     // Verificar si ha pasado suficiente tiempo desde que se otorgó o recibió karma por última vez
     const lastTime = karmaLastGivenOrReceived[msg.from.id];
     if (lastTime && Date.now() - lastTime < 60000) {
@@ -69,7 +71,10 @@ bot.on("message", async (msg) => {
 
 bot.onText(/\/karma/, async (msg) => {
   try {
-    const karma = await Karma.findOne({ userId: msg.from.id });
+    const karma = await Karma.findOne({
+      userId: msg.from.id,
+      groupId: msg.chat.id,
+    });
 
     const karmaScore = karma ? karma.karma : 0;
 
