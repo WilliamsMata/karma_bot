@@ -4,11 +4,10 @@ mongoose.set("strictQuery", false);
 const dbConnection = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_CNN);
-
-    console.log("Base de datos online");
+    console.log("Database online");
   } catch (error) {
     console.log(error);
-    throw new Error("Error a la hora de iniciar la base de datos");
+    throw new Error("Error when starting the database");
   }
 };
 
