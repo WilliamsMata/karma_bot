@@ -4,7 +4,6 @@ const KarmaSchema = Schema({
   userId: {
     type: Number,
     required: true,
-    unique: true,
   },
   userName: {
     type: String,
@@ -14,10 +13,7 @@ const KarmaSchema = Schema({
     type: Number,
     required: true,
   },
-  karma: {
-    type: Number,
-    default: 0,
-  },
+  karma: Schema.Types.Mixed,
 });
 
 module.exports = model("karma", KarmaSchema);

@@ -19,13 +19,17 @@ const updateKarma = async (msg, incValue = 1) => {
 };
 
 const getTopKarma = async () => {
-  const topKarmaUsers = await Karma.find()
-    .sort({ karma: -1 })
-    .limit(10)
-    .select("userId karma userName")
-    .exec();
+  try {
+    const topKarmaUsers = await Karma.find()
+      .sort({ karma: -1 })
+      .limit(10)
+      .select("userId karma userName")
+      .exec();
 
-  return topKarmaUsers;
+    return topKarmaUsers;
+  } catch (error) {
+    return null;
+  }
 };
 
 module.exports = {

@@ -10,15 +10,31 @@ dbConnection();
 
 const bot = new TelegramBot(token, { polling: true });
 
+// Variable de estado para mantener un registro del último tiempo en que se otorgó o recibió karma por usuario
+const karmaLastGivenOrReceived = {};
+
 bot.on("message", async (msg) => {
-  console.log(msg);
+  // console.log(msg);
 
   if (msg.text === "+1" && msg.reply_to_message) {
     if (msg.reply_to_message.from.id === msg.from.id) return;
 
-    const resp = await updateKarma(msg, 1);
+    // Verificar si ha pasado suficiente tiempo desde que se otorgó o recibió karma por última vez
+    const lastTime = karmaLastGivenOrReceived[msg.from.id];
+    if (lastTime && Date.now() - lastTime < 60000) {
+      bot.sendMessage(
+        msg.chat.id,
+        "Please wait 1 minute before giving karma again."
+      );
+      return;
+    }
 
+    // Actualizar la puntuación de karma del usuario
+    const resp = await updateKarma(msg, 1);
     if (!resp) return;
+
+    // Actualizar la variable de estado con el último tiempo en que se otorgó o recibió karma
+    karmaLastGivenOrReceived[msg.from.id] = Date.now();
 
     bot.sendMessage(
       msg.chat.id,
@@ -27,9 +43,22 @@ bot.on("message", async (msg) => {
   }
 
   if (msg.text === "-1" && msg.reply_to_message) {
-    const resp = await updateKarma(msg, -1);
+    // Verificar si ha pasado suficiente tiempo desde que se otorgó o recibió karma por última vez
+    const lastTime = karmaLastGivenOrReceived[msg.from.id];
+    if (lastTime && Date.now() - lastTime < 60000) {
+      bot.sendMessage(
+        msg.chat.id,
+        "Please wait 1 minute before giving karma again."
+      );
+      return;
+    }
 
+    // Actualizar la puntuación de karma del usuario
+    const resp = await updateKarma(msg, -1);
     if (!resp) return;
+
+    // Actualizar la variable de estado con el último tiempo en que se otorgó o recibió karma
+    karmaLastGivenOrReceived[msg.from.id] = Date.now();
 
     bot.sendMessage(
       msg.chat.id,
@@ -39,15 +68,21 @@ bot.on("message", async (msg) => {
 });
 
 bot.onText(/\/karma/, async (msg) => {
-  const karma = await Karma.findOne({ userId: msg.from.id });
+  try {
+    const karma = await Karma.findOne({ userId: msg.from.id });
 
-  const karmaScore = karma ? karma.karma : 0;
+    const karmaScore = karma ? karma.karma : 0;
 
-  bot.sendMessage(msg.chat.id, `Your karma is ${karmaScore}`);
+    bot.sendMessage(msg.chat.id, `Your karma is ${karmaScore}`);
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 bot.onText(/\/listkarma/, async (msg) => {
   const topKarmaUsers = await getTopKarma();
+
+  if (!topKarmaUsers) return;
 
   let message = "Top 10 karma users:\n";
 
