@@ -26,8 +26,10 @@ Replace <your_bot_token_here> with the token for your Telegram bot, and <your_mo
 The following commands are available:
 
 - +1 or -1: Respond to a message with +1 to increase the karma of the person who sent the message, or -1 to decrease it.
-- /karma: Send this command to the bot to get your current karma score in the group.
-- /listkarma: Send this command to the bot to get a leaderboard of the top 10 users with the most karma in the group.
+- /me: Send this command to the group to get your current karma score.
+- /top: Send this command to the group to get a leaderboard of the top 10 users with the most karma in the group.
+- /hate: Send this command to the group to get a leaderboard of the top 10 hated users in the group.
+- /help: Send this command to get info about the bot.
 
 # Acknowledgments
 

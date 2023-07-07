@@ -69,7 +69,7 @@ bot.on("message", async (msg) => {
   }
 });
 
-bot.onText(/\/karma/, async (msg) => {
+bot.onText(/\/me/, async (msg) => {
   try {
     // Find the karma document for the user in the current group
     const karma = await Karma.findOne({
@@ -87,13 +87,28 @@ bot.onText(/\/karma/, async (msg) => {
   }
 });
 
-bot.onText(/\/listkarma/, async (msg) => {
+bot.onText(/\/top/, async (msg) => {
   // Get the top 10 users with the most karma in the current group
   const topKarmaUsers = await getTopKarma(msg.chat.id);
-
   if (!topKarmaUsers) return;
 
   let message = "Top 10 karma users:\n";
+
+  // Construct a message with the top karma users and their scores
+  topKarmaUsers.forEach((user, index) => {
+    message += `${index + 1}. ${user.userName} has ${user.karma} of karma\n`;
+  });
+
+  // Send the message with the top karma users
+  bot.sendMessage(msg.chat.id, message);
+});
+
+bot.onText(/\/hate/, async (msg) => {
+  // Get the top 10 users with the most hate karma in the current group
+  const topKarmaUsers = await getTopKarma(msg.chat.id, true);
+  if (!topKarmaUsers) return;
+
+  let message = "Top 10 most hated users:\n";
 
   // Construct a message with the top karma users and their scores
   topKarmaUsers.forEach((user, index) => {
@@ -114,8 +129,9 @@ bot.onText(/\/help/, (msg) => {
 The following commands are available:
 
 - +1 or -1: Respond to a message with +1 to increase the karma of the person who sent the message, or -1 to decrease it.
-- /karma: Send this command to the group to get your current karma score.
-- /listkarma: Send this command to the group to get a leaderboard of the top 10 users with the most karma in the group.
+- /me: Send this command to the group to get your current karma score.
+- /top: Send this command to the group to get a leaderboard of the top 10 users with the most karma in the group.
+- /hate: Send this command to the group to get a leaderboard of the top 10 hated users in the group.
     `
   );
 });
