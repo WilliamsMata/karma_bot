@@ -136,13 +136,14 @@ The following commands are available:
   );
 });
 
-bot.onText(/\/history (.+)/, async (msg, match) => {
+bot.onText(/\/gethistory (.+)/, async (msg, match) => {
   try {
-    const username = match[1];
-    const karma = await Karma.findOne({
-      userName: username,
-      groupId: msg.chat.id,
-    });
+    const input = match[1];
+    const query = input.startsWith("@")
+      ? { userName: input, groupId: msg.chat.id }
+      : { firstName: input, groupId: msg.chat.id };
+
+    const karma = await Karma.findOne(query);
 
     if (!karma) {
       bot.sendMessage(

@@ -7,6 +7,9 @@ const KarmaSchema = Schema({
   },
   userName: {
     type: String,
+  },
+  firstName: {
+    type: String,
     required: true,
   },
   groupId: {
