@@ -124,10 +124,12 @@ bot.onText(/\/gethistory (.+)/, async (msg, match) => {
   try {
     // Extracts the input username or first name from the command argument
     const input = match[1];
-    // Defines the query object to search for the user's karma history
+    // Creates a regular expression that matches the input string, case-insensitive
+    const regex = new RegExp(`^${input}$`, "i");
+    // Defines the query object to search for the user's karma history, using the regex to make the search case-insensitive
     const query = input.startsWith("@")
-      ? { userName: input.substring(1), groupId: msg.chat.id }
-      : { firstName: input, groupId: msg.chat.id };
+      ? { userName: { $regex: regex }, groupId: msg.chat.id }
+      : { firstName: { $regex: regex }, groupId: msg.chat.id };
     // Finds the Karma document for the user and group
     const karma = await Karma.findOne(query);
     // If the user's karma history is not found, sends an error message and exits the function
