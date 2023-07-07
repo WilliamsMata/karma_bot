@@ -80,7 +80,7 @@ bot.onText(/\/karma/, async (msg) => {
 });
 
 bot.onText(/\/listkarma/, async (msg) => {
-  const topKarmaUsers = await getTopKarma();
+  const topKarmaUsers = await getTopKarma(msg.chat.id);
 
   if (!topKarmaUsers) return;
 

@@ -18,12 +18,12 @@ const updateKarma = async (msg, incValue = 1) => {
   }
 };
 
-const getTopKarma = async () => {
+const getTopKarma = async (groupId) => {
   try {
-    const topKarmaUsers = await Karma.find()
+    const topKarmaUsers = await Karma.find({ groupId })
       .sort({ karma: -1 })
       .limit(10)
-      .select("userId karma userName")
+      .select("karma userName")
       .exec();
 
     return topKarmaUsers;
