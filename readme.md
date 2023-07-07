@@ -14,7 +14,7 @@ To use the bot, you will need to have Node.js installed on your system and a mon
 
 ```
 TELEGRAM_BOT_TOKEN=<your_bot_token_here>
-MONGODB_CNN=<your_bot_token_here>
+MONGODB_CNN=<your_mongodb_uri_here>
 ```
 
 Replace <your_bot_token_here> with the token for your Telegram bot, and <your_mongodb_uri_here> with the URI for your MongoDB instance.
