@@ -148,7 +148,7 @@ bot.onText(/\/gethistory (.+)/, async (msg, match) => {
     if (!karma) {
       bot.sendMessage(
         msg.chat.id,
-        `No karma history found for user ${username} in this group.`
+        `No karma history found for user ${input} in this group.`
       );
       return;
     }
@@ -158,12 +158,12 @@ bot.onText(/\/gethistory (.+)/, async (msg, match) => {
     if (history.length === 0) {
       bot.sendMessage(
         msg.chat.id,
-        `No karma history found for user ${username} in this group.`
+        `No karma history found for user ${input} in this group.`
       );
       return;
     }
 
-    let message = `Karma history for ${username}:\n`;
+    let message = `Karma history for ${input}:\n`;
 
     history.forEach((entry) => {
       const sign = entry.karmaChange > 0 ? "+" : "";
