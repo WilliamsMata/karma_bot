@@ -1,0 +1,21 @@
+{
+  "name": "karmabot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "Williams Mata",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "mongoose": "^7.3.2",
+    "node-telegram-bot-api": "^0.61.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
