@@ -103,3 +103,19 @@ bot.onText(/\/listkarma/, async (msg) => {
   // Send the message with the top karma users
   bot.sendMessage(msg.chat.id, message);
 });
+
+/* 
+  Help message
+*/
+bot.onText(/\/help/, (msg) => {
+  bot.sendMessage(
+    msg.chat.id,
+    `
+The following commands are available:
+
+- +1 or -1: Respond to a message with +1 to increase the karma of the person who sent the message, or -1 to decrease it.
+- /karma: Send this command to the group to get your current karma score.
+- /listkarma: Send this command to the group to get a leaderboard of the top 10 users with the most karma in the group.
+    `
+  );
+});
