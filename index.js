@@ -119,6 +119,89 @@ bot.onText(/\/hate/, async (msg) => {
   bot.sendMessage(msg.chat.id, message);
 });
 
+// Handles the "/gethistory" command to view the karma history of a specific user in the group
+bot.onText(/\/gethistory (.+)/, async (msg, match) => {
+  try {
+    // Extracts the input username or first name from the command argument
+    const input = match[1];
+    // Defines the query object to search for the user's karma history
+    const query = input.startsWith("@")
+      ? { userName: input.substring(1), groupId: msg.chat.id }
+      : { firstName: input, groupId: msg.chat.id };
+    // Finds the Karma document for the user and group
+    const karma = await Karma.findOne(query);
+    // If the user's karma history is not found, sends an error message and exits the function
+    if (!karma) {
+      bot.sendMessage(
+        msg.chat.id,
+        `No karma history found for user ${input} in this group.`
+      );
+      return;
+    }
+    // Gets the last 10 entries from the user's karma history
+    const history = karma.history.slice(-10);
+    // If there are no entries in the user's karma history, sends an error message and exits the function
+    if (history.length === 0) {
+      bot.sendMessage(
+        msg.chat.id,
+        `No karma history found for user ${input} in this group.`
+      );
+      return;
+    }
+    // Creates a message with the user's karma history and sends it to the chat
+    let message = `Karma history for ${input}:\n`;
+    history.forEach((entry) => {
+      const sign = entry.karmaChange > 0 ? "+" : "";
+      message += `${new Date(entry.timestamp).toLocaleString()}: ${sign}${
+        entry.karmaChange
+      }\n`;
+    });
+    bot.sendMessage(msg.chat.id, message);
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+// Handles the "/history" command to view the karma history of the user who sent the message
+bot.onText(/\/history/, async (msg) => {
+  try {
+    // Finds the Karma document for the user and group
+    const karma = await Karma.findOne({
+      userId: msg.from.id,
+      groupId: msg.chat.id,
+    });
+    // If the user's karma history is not found, sends an error message and exits the function
+    if (!karma) {
+      bot.sendMessage(
+        msg.chat.id,
+        "You do not have any karma history in this group."
+      );
+      return;
+    }
+    // Gets the last 10 entries from the user's karma history
+    const history = karma.history.slice(-10);
+    // If there are no entries in the user's karma history, sends an error message and exits the function
+    if (history.length === 0) {
+      bot.sendMessage(
+        msg.chat.id,
+        "You do not have any karma history in this group."
+      );
+      return;
+    }
+    // Creates a message with the user's karma history and sends it to the chat
+    let message = "Your karma history:\n";
+    history.forEach((entry) => {
+      const sign = entry.karmaChange > 0 ? "+" : "";
+      message += `${new Date(entry.timestamp).toLocaleString()}: ${sign}${
+        entry.karmaChange
+      }\n`;
+    });
+    bot.sendMessage(msg.chat.id, message);
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 /* 
   Help message
 */
@@ -132,88 +215,8 @@ The following commands are available:
 - /me: Send this command to the group to get your current karma score.
 - /top: Send this command to the group to get a leaderboard of the top 10 users with the most karma in the group.
 - /hate: Send this command to the group to get a leaderboard of the top 10 hated users in the group.
+- /history: Allows users in a Telegram group to view their own karma history in the group.
+- /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
     `
   );
-});
-
-bot.onText(/\/gethistory (.+)/, async (msg, match) => {
-  try {
-    const input = match[1];
-    const query = input.startsWith("@")
-      ? { userName: input.substring(1), groupId: msg.chat.id }
-      : { firstName: input, groupId: msg.chat.id };
-
-    const karma = await Karma.findOne(query);
-
-    if (!karma) {
-      bot.sendMessage(
-        msg.chat.id,
-        `No karma history found for user ${input} in this group.`
-      );
-      return;
-    }
-
-    const history = karma.history.slice(-10);
-
-    if (history.length === 0) {
-      bot.sendMessage(
-        msg.chat.id,
-        `No karma history found for user ${input} in this group.`
-      );
-      return;
-    }
-
-    let message = `Karma history for ${input}:\n`;
-
-    history.forEach((entry) => {
-      const sign = entry.karmaChange > 0 ? "+" : "";
-      message += `${new Date(entry.timestamp).toLocaleString()}: ${sign}${
-        entry.karmaChange
-      }\n`;
-    });
-
-    bot.sendMessage(msg.chat.id, message);
-  } catch (error) {
-    console.log(error);
-  }
-});
-
-bot.onText(/\/history/, async (msg) => {
-  try {
-    const karma = await Karma.findOne({
-      userId: msg.from.id,
-      groupId: msg.chat.id,
-    });
-
-    if (!karma) {
-      bot.sendMessage(
-        msg.chat.id,
-        "You do not have any karma history in this group."
-      );
-      return;
-    }
-
-    const history = karma.history.slice(-10);
-
-    if (history.length === 0) {
-      bot.sendMessage(
-        msg.chat.id,
-        "You do not have any karma history in this group."
-      );
-      return;
-    }
-
-    let message = "Your karma history:\n";
-
-    history.forEach((entry) => {
-      const sign = entry.karmaChange > 0 ? "+" : "";
-      message += `${new Date(entry.timestamp).toLocaleString()}: ${sign}${
-        entry.karmaChange
-      }\n`;
-    });
-
-    bot.sendMessage(msg.chat.id, message);
-  } catch (error) {
-    console.log(error);
-  }
 });
