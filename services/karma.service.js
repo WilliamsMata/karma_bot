@@ -17,7 +17,7 @@ const updateKarma = async (msg, incValue = 1) => {
           },
         },
         userName: msg.reply_to_message.from.username,
-        firstName: msg.msg.reply_to_message.from.first_name,
+        firstName: msg.reply_to_message.from.first_name,
       },
       // Create a new document if it doesn't exist
       { upsert: true, new: true }
