@@ -1,0 +1,34 @@
+# Karma Bot
+
+This is a simple bot for tracking karma in a group chat. The bot allows users to give each other karma points by sending messages with +1 or -1 as a response to a message. The bot also provides commands to check a user's current karma score and to see a leaderboard of the top users with the most karma.
+
+https://t.me/karma_tg_bot
+
+# Installation
+
+To use the bot, you will need to have Node.js installed on your system and a mongo database. Once you have those installed, follow these steps:
+
+1. Clone this repository to your local machine.
+2. Run npm install to install the required dependencies.
+3. Create a .env file in the root directory of the project with the following content:
+
+```
+TELEGRAM_BOT_TOKEN=<your_bot_token_here>
+MONGODB_CNN=<your_bot_token_here>
+```
+
+Replace <your_bot_token_here> with the token for your Telegram bot, and <your_mongodb_uri_here> with the URI for your MongoDB instance.
+
+4. Run npm start to start the bot.
+
+# Usage
+
+The following commands are available:
+
+- +1 or -1: Respond to a message with +1 to increase the karma of the person who sent the message, or -1 to decrease it.
+- /karma: Send this command to the bot to get your current karma score in the group.
+- /listkarma: Send this command to the bot to get a leaderboard of the top 10 users with the most karma in the group.
+
+# Acknowledgments
+
+This project was inspired by the [karma bot](<[https://](https://github.com/hbourgeot/karmagobot)>)↗ from [hbourgeot](https://github.com/hbourgeot).
