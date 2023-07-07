@@ -16,4 +16,7 @@ const KarmaSchema = Schema({
   karma: Schema.Types.Mixed,
 });
 
+// Define un índice compuesto para userId y groupId
+KarmaSchema.index({ userId: 1, groupId: 1 }, { unique: true });
+
 module.exports = model("karma", KarmaSchema);
