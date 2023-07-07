@@ -10,6 +10,12 @@ const updateKarma = async (msg, incValue = 1) => {
       // Update the karma value and user name
       {
         $inc: { karma: incValue },
+        $push: {
+          history: {
+            timestamp: Date.now(),
+            karmaChange: incValue,
+          },
+        },
         userName: msg.reply_to_message.from.first_name,
       },
       // Create a new document if it doesn't exist

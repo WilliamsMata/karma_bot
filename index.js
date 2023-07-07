@@ -135,3 +135,84 @@ The following commands are available:
     `
   );
 });
+
+bot.onText(/\/history (.+)/, async (msg, match) => {
+  try {
+    const username = match[1];
+    const karma = await Karma.findOne({
+      userName: username,
+      groupId: msg.chat.id,
+    });
+
+    if (!karma) {
+      bot.sendMessage(
+        msg.chat.id,
+        `No karma history found for user ${username} in this group.`
+      );
+      return;
+    }
+
+    const history = karma.history.slice(-10);
+
+    if (history.length === 0) {
+      bot.sendMessage(
+        msg.chat.id,
+        `No karma history found for user ${username} in this group.`
+      );
+      return;
+    }
+
+    let message = `Karma history for ${username}:\n`;
+
+    history.forEach((entry) => {
+      const sign = entry.karmaChange > 0 ? "+" : "";
+      message += `${new Date(entry.timestamp).toLocaleString()}: ${sign}${
+        entry.karmaChange
+      }\n`;
+    });
+
+    bot.sendMessage(msg.chat.id, message);
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+bot.onText(/\/history/, async (msg) => {
+  try {
+    const karma = await Karma.findOne({
+      userId: msg.from.id,
+      groupId: msg.chat.id,
+    });
+
+    if (!karma) {
+      bot.sendMessage(
+        msg.chat.id,
+        "You do not have any karma history in this group."
+      );
+      return;
+    }
+
+    const history = karma.history.slice(-10);
+
+    if (history.length === 0) {
+      bot.sendMessage(
+        msg.chat.id,
+        "You do not have any karma history in this group."
+      );
+      return;
+    }
+
+    let message = "Your karma history:\n";
+
+    history.forEach((entry) => {
+      const sign = entry.karmaChange > 0 ? "+" : "";
+      message += `${new Date(entry.timestamp).toLocaleString()}: ${sign}${
+        entry.karmaChange
+      }\n`;
+    });
+
+    bot.sendMessage(msg.chat.id, message);
+  } catch (error) {
+    console.log(error);
+  }
+});

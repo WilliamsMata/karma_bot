@@ -14,6 +14,12 @@ const KarmaSchema = Schema({
     required: true,
   },
   karma: Schema.Types.Mixed,
+  history: [
+    {
+      timestamp: { type: Date, required: true },
+      karmaChange: { type: Number, required: true },
+    },
+  ],
 });
 
 // Defines a composite index for userId and groupId
