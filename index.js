@@ -148,6 +148,7 @@ bot.onText(/\/mostGivers/, async (msg) => {
 
   // Construct a message with the top karma users and their scores
   topGivenKarma.forEach((user, index) => {
+    if (user.givenKarma === 0) return;
     message += `${index + 1}. ${user.userName} have given ${
       user.givenKarma
     } of karma\n`;
@@ -156,6 +157,7 @@ bot.onText(/\/mostGivers/, async (msg) => {
   message += "\n😠 Top 10 users who have given the most hate:\n";
 
   topGivenHate.forEach((user, index) => {
+    if (user.givenHate === 0) return;
     message += `${index + 1}. ${user.userName} have given ${
       user.givenHate
     } of hate\n`;
