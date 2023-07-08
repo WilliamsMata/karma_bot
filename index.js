@@ -133,7 +133,9 @@ bot.onText(/\/hate/, async (msg) => {
 
   // Construct a message with the top karma users and their scores
   topKarmaUsers.forEach((user, index) => {
-    message += `${index + 1}. ${user.firstName} has ${user.karma} of karma\n`;
+    message += `${index + 1}. ${user.firstName || user.userName} has ${
+      user.karma
+    } of karma\n`;
   });
 
   // Send the message with the top karma users
