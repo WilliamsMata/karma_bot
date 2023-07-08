@@ -138,7 +138,7 @@ bot.onText(/\/hate/, async (msg) => {
   bot.sendMessage(msg.chat.id, message);
 });
 
-bot.onText(/\/mostGiven/, async (msg) => {
+bot.onText(/\/mostGivers/, async (msg) => {
   // Get the top 10 users with the most karma in the current group
   const { topGivenKarma, topGivenHate } = await getTopGiven(msg.chat.id);
 
