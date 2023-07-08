@@ -27,7 +27,4 @@ const KarmaSchema = Schema({
   givenHate: { type: Number, default: 0 },
 });
 
-// Defines a composite index for userId and groupId
-KarmaSchema.index({ userId: 1, groupId: 1 }, { unique: true });
-
 module.exports = model("karma", KarmaSchema);
