@@ -80,7 +80,42 @@ const getTopKarma = async (groupId, asc = false) => {
   }
 };
 
+const getTopGiven = async (groupId) => {
+  try {
+    const [topGivenKarma, topGivenHate] = await Promise.all([
+      Karma.find({ groupId })
+        // Sort the karma documents by karma score in descending or ascending order
+        .sort({ givenKarma: -1 })
+        // Limit the results to the top 10 users
+        .limit(10)
+        // Select only the karma score and user name fields
+        .select("givenKarma userName")
+        .exec(),
+      Karma.find({ groupId })
+        // Sort the karma documents by karma score in descending or ascending order
+        .sort({ givenHate: -1 })
+        // Limit the results to the top 10 users
+        .limit(10)
+        // Select only the karma score and user name fields
+        .select("givenHate userName")
+        .exec(),
+    ]);
+
+    return {
+      topGivenKarma,
+      topGivenHate,
+    };
+  } catch (error) {
+    console.log(error);
+    return {
+      topGivenKarma: null,
+      topGivenHate: null,
+    };
+  }
+};
+
 module.exports = {
   updateKarma,
   getTopKarma,
+  getTopGiven,
 };

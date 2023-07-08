@@ -2,7 +2,11 @@ require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const { dbConnection } = require("./database/config.db");
 const Karma = require("./model/karma");
-const { updateKarma, getTopKarma } = require("./services/karma.service");
+const {
+  updateKarma,
+  getTopKarma,
+  getTopGiven,
+} = require("./services/karma.service");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -128,6 +132,33 @@ bot.onText(/\/hate/, async (msg) => {
   // Construct a message with the top karma users and their scores
   topKarmaUsers.forEach((user, index) => {
     message += `${index + 1}. ${user.userName} has ${user.karma} of karma\n`;
+  });
+
+  // Send the message with the top karma users
+  bot.sendMessage(msg.chat.id, message);
+});
+
+bot.onText(/\/mostGiven/, async (msg) => {
+  // Get the top 10 users with the most karma in the current group
+  const { topGivenKarma, topGivenHate } = await getTopGiven(msg.chat.id);
+
+  if (!topGivenKarma || !topGivenHate) return;
+
+  let message = "♥ Top 10 users who have given the most karma:\n";
+
+  // Construct a message with the top karma users and their scores
+  topGivenKarma.forEach((user, index) => {
+    message += `${index + 1}. ${user.userName} have given ${
+      user.givenKarma
+    } of karma\n`;
+  });
+
+  message += "\n😠 Top 10 users who have given the most hate:\n";
+
+  topGivenHate.forEach((user, index) => {
+    message += `${index + 1}. ${user.userName} have given ${
+      user.givenHate
+    } of hate\n`;
   });
 
   // Send the message with the top karma users
