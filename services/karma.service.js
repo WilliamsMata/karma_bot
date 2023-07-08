@@ -65,7 +65,10 @@ const updateKarma = async (msg, incValue = 1) => {
 // Gets the top 10 users with the most karma in a given group
 const getTopKarma = async (groupId, asc = false) => {
   try {
-    const topKarmaUsers = await Karma.find({ groupId })
+    const topKarmaUsers = await Karma.find({
+      groupId,
+      karma: { $exists: true },
+    })
       // Sort the karma documents by karma score in descending or ascending order
       .sort({ karma: asc ? 1 : -1 })
       // Limit the results to the top 10 users
