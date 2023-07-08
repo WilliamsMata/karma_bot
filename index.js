@@ -171,6 +171,50 @@ bot.onText(/\/mostgivers/, async (msg) => {
   bot.sendMessage(msg.chat.id, message);
 });
 
+// Handles the "/getkarma" command to view the karma of a specific user in the group
+bot.onText(/\/getkarma (.+)/, async (msg, match) => {
+  try {
+    // Extracts the input username or first name from the command argument
+    const input = match[1];
+    // Defines the query object to search for the user's karma history, using the regex to make the search case-insensitive
+    const query = input.startsWith("@")
+      ? {
+          userName: { $regex: new RegExp(`^${input.substring(1)}$`, "i") },
+          groupId: msg.chat.id,
+        }
+      : {
+          firstName: { $regex: new RegExp(`^${input}$`, "i") },
+          groupId: msg.chat.id,
+        };
+    // Finds the Karma document for the user and group
+    const karma = await Karma.findOne(query);
+    // If the user's karma history is not found, sends an error message and exits the function
+    if (!karma) {
+      bot.sendMessage(
+        msg.chat.id,
+        `No karma found for user ${input} in this group.`
+      );
+      return;
+    }
+
+    // Get the user's karma score or default to 0 if no document found
+    const karmaScore = karma.karma ? karma.karma : 0;
+
+    // Send a message with the user's karma score
+    bot.sendMessage(
+      msg.chat.id,
+      `
+      ${input} has ${karmaScore} karma.
+
+♥ Given karma: ${karma.givenKarma}.
+😠 Given hate: ${karma.givenHate}.
+    `
+    );
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 // Handles the "/gethistory" command to view the karma history of a specific user in the group
 bot.onText(/\/gethistory (.+)/, async (msg, match) => {
   try {
@@ -275,6 +319,7 @@ The following commands are available:
 - /mostgivers: Send this command to the group to get a leaderboard of the top 10 users who have given the most karma and hate.
 - /hate: Send this command to the group to get a leaderboard of the top 10 hated users in the group.
 - /history: Allows users in a Telegram group to view their own karma history in the group.
+- /getkarma <name or username>: Allows users in a Telegram group to view the karma of a specific user in the group.
 - /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
     `
   );
