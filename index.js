@@ -131,7 +131,7 @@ bot.onText(/\/hate/, async (msg) => {
 
   // Construct a message with the top karma users and their scores
   topKarmaUsers.forEach((user, index) => {
-    message += `${index + 1}. ${user.userName} has ${user.karma} of karma\n`;
+    message += `${index + 1}. ${user.firstName} has ${user.karma} of karma\n`;
   });
 
   // Send the message with the top karma users
@@ -149,7 +149,7 @@ bot.onText(/\/mostGivers/, async (msg) => {
   // Construct a message with the top karma users and their scores
   topGivenKarma.forEach((user, index) => {
     if (user.givenKarma === 0) return;
-    message += `${index + 1}. ${user.userName} have given ${
+    message += `${index + 1}. ${user.firstName} have given ${
       user.givenKarma
     } of karma\n`;
   });
@@ -158,7 +158,7 @@ bot.onText(/\/mostGivers/, async (msg) => {
 
   topGivenHate.forEach((user, index) => {
     if (user.givenHate === 0) return;
-    message += `${index + 1}. ${user.userName} have given ${
+    message += `${index + 1}. ${user.firstName} have given ${
       user.givenHate
     } of hate\n`;
   });

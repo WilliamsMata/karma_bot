@@ -71,7 +71,7 @@ const getTopKarma = async (groupId, asc = false) => {
       // Limit the results to the top 10 users
       .limit(10)
       // Select only the karma score and user name fields
-      .select("karma userName")
+      .select("karma firstName")
       .exec();
 
     return topKarmaUsers;
@@ -89,7 +89,7 @@ const getTopGiven = async (groupId) => {
         // Limit the results to the top 10 users
         .limit(10)
         // Select only the karma score and user name fields
-        .select("givenKarma userName")
+        .select("givenKarma firstName")
         .exec(),
       Karma.find({ groupId })
         // Sort the karma documents by karma score in descending or ascending order
@@ -97,7 +97,7 @@ const getTopGiven = async (groupId) => {
         // Limit the results to the top 10 users
         .limit(10)
         // Select only the karma score and user name fields
-        .select("givenHate userName")
+        .select("givenHate firstName")
         .exec(),
     ]);
 
