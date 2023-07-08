@@ -71,7 +71,7 @@ const getTopKarma = async (groupId, asc = false) => {
       // Limit the results to the top 10 users
       .limit(10)
       // Select only the karma score and user name fields
-      .select("karma firstName")
+      .select("karma firstName userName")
       .exec();
 
     return topKarmaUsers;
