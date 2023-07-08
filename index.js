@@ -38,7 +38,7 @@ bot.on("message", async (msg) => {
 
     bot.sendMessage(
       msg.chat.id,
-      `${msg.reply_to_message.from.first_name} has now ${resp.karma} of karma`
+      `${msg.reply_to_message.from.first_name} has now ${resp.respReceiver.karma} of karma`
     );
   }
 
@@ -77,11 +77,26 @@ bot.onText(/\/me/, async (msg) => {
       groupId: msg.chat.id,
     });
 
+    if (!karma) {
+      bot.sendMessage(msg.chat.id, `Your karma is 0`);
+      return;
+    }
+
     // Get the user's karma score or default to 0 if no document found
-    const karmaScore = karma ? karma.karma : 0;
+    const karmaScore = karma.karma ? karma.karma : 0;
 
     // Send a message with the user's karma score
-    bot.sendMessage(msg.chat.id, `Your karma is ${karmaScore}`);
+    bot.sendMessage(
+      msg.chat.id,
+      `
+      🙋 Hi ${
+        msg.from.username ? `@${msg.from.username}` : msg.from.first_name
+      } your karma is ${karmaScore}.
+
+♥ Given karma: ${karma.givenKarma}.
+😠 Given hate: ${karma.givenHate}.
+    `
+    );
   } catch (error) {
     console.log(error);
   }

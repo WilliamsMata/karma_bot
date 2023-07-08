@@ -23,6 +23,8 @@ const KarmaSchema = Schema({
       karmaChange: { type: Number, required: true },
     },
   ],
+  givenKarma: { type: Number, default: 0 },
+  givenHate: { type: Number, default: 0 },
 });
 
 // Defines a composite index for userId and groupId
