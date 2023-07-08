@@ -64,7 +64,7 @@ bot.on("message", async (msg) => {
 
     bot.sendMessage(
       msg.chat.id,
-      `${msg.reply_to_message.from.first_name} has now ${resp.karma} of karma`
+      `${msg.reply_to_message.from.first_name} has now ${resp.respReceiver.karma} of karma`
     );
   }
 });
