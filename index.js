@@ -168,7 +168,7 @@ bot.onText(/\/mostGivers/, async (msg) => {
 });
 
 // Handles the "/gethistory" command to view the karma history of a specific user in the group
-bot.onText(/\/gethistory (.+)/, async (msg, match) => {
+bot.onText(/\/getHistory (.+)/, async (msg, match) => {
   try {
     // Extracts the input username or first name from the command argument
     const input = match[1];
@@ -268,9 +268,10 @@ The following commands are available:
 - +1 or -1: Respond to a message with +1 to increase the karma of the person who sent the message, or -1 to decrease it.
 - /me: Send this command to the group to get your current karma score.
 - /top: Send this command to the group to get a leaderboard of the top 10 users with the most karma in the group.
+- /mostGivers: Send this command to the group to get a leaderboard of the top 10 users who have given the most karma and hate.
 - /hate: Send this command to the group to get a leaderboard of the top 10 hated users in the group.
 - /history: Allows users in a Telegram group to view their own karma history in the group.
-- /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
+- /getHistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
     `
   );
 });

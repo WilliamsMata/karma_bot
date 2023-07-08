@@ -29,8 +29,9 @@ The following commands are available:
 - /me: Send this command to the group to get your current karma score.
 - /top: Send this command to the group to get a leaderboard of the top 10 users with the most karma in the group.
 - /hate: Send this command to the group to get a leaderboard of the top 10 hated users in the group.
+- /mostGivers: Send this command to the group to get a leaderboard of the top 10 users who have given the most karma and hate.
 - /history: Allows users in a Telegram group to view their own karma history in the group.
-- /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
+- /getHistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
 - /help: Send this command to get info about the bot.
 
 # Acknowledgments
