@@ -20,6 +20,8 @@ const karmaLastGivenOrReceived = {};
 bot.on("message", async (msg) => {
   // console.log(msg);
 
+  if (!msg.text) return;
+
   if (msg.text.includes("+1") && msg.reply_to_message) {
     if (msg.reply_to_message.from.id === msg.from.id) return;
 
@@ -46,7 +48,7 @@ bot.on("message", async (msg) => {
     );
   }
 
-  if (msg.text.includes("-1") && msg.reply_to_message) {
+  if (msg.text.includes(" -1 ") && msg.reply_to_message) {
     if (msg.reply_to_message.from.id === msg.from.id) return;
 
     // Check if enough time has passed since karma was last given or received
