@@ -85,7 +85,7 @@ bot.on("message", async (msg) => {
   }
 });
 
-bot.onText(/\/me/, async (msg) => {
+bot.onText(/^\/me/, async (msg) => {
   try {
     // Find the karma document for the user in the current group
     const karma = await Karma.findOne({
@@ -118,7 +118,7 @@ bot.onText(/\/me/, async (msg) => {
   }
 });
 
-bot.onText(/\/top/, async (msg) => {
+bot.onText(/^\/top/, async (msg) => {
   // Get the top 10 users with the most karma in the current group
   const topKarmaUsers = await getTopKarma(msg.chat.id);
   if (!topKarmaUsers) return;
@@ -136,7 +136,7 @@ bot.onText(/\/top/, async (msg) => {
   bot.sendMessage(msg.chat.id, message);
 });
 
-bot.onText(/\/hate/, async (msg) => {
+bot.onText(/^\/hate/, async (msg) => {
   // Get the top 10 users with the most hate karma in the current group
   const topKarmaUsers = await getTopKarma(msg.chat.id, true);
   if (!topKarmaUsers) return;
@@ -154,7 +154,7 @@ bot.onText(/\/hate/, async (msg) => {
   bot.sendMessage(msg.chat.id, message);
 });
 
-bot.onText(/\/mostgivers/, async (msg) => {
+bot.onText(/^\/mostgivers/, async (msg) => {
   // Get the top 10 users with the most karma in the current group
   const { topGivenKarma, topGivenHate } = await getTopGiven(msg.chat.id);
 
@@ -184,7 +184,7 @@ bot.onText(/\/mostgivers/, async (msg) => {
 });
 
 // Handles the "/getkarma" command to view the karma of a specific user in the group
-bot.onText(/\/getkarma (.+)/, async (msg, match) => {
+bot.onText(/^\/getkarma (.+)/, async (msg, match) => {
   try {
     // Extracts the input username or first name from the command argument
     const input = match[1];
@@ -228,7 +228,7 @@ bot.onText(/\/getkarma (.+)/, async (msg, match) => {
 });
 
 // Handles the "/gethistory" command to view the karma history of a specific user in the group
-bot.onText(/\/gethistory (.+)/, async (msg, match) => {
+bot.onText(/^\/gethistory (.+)/, async (msg, match) => {
   try {
     // Extracts the input username or first name from the command argument
     const input = match[1];
@@ -277,7 +277,7 @@ bot.onText(/\/gethistory (.+)/, async (msg, match) => {
 });
 
 // Handles the "/history" command to view the karma history of the user who sent the message
-bot.onText(/\/history/, async (msg) => {
+bot.onText(/^\/history/, async (msg) => {
   try {
     // Finds the Karma document for the user and group
     const karma = await Karma.findOne({
@@ -319,7 +319,7 @@ bot.onText(/\/history/, async (msg) => {
 /* 
   Help message
 */
-bot.onText(/\/help/, (msg) => {
+bot.onText(/^\/help/, (msg) => {
   bot.sendMessage(
     msg.chat.id,
     `
