@@ -16,7 +16,13 @@ const KarmaSchema = Schema({
     type: Number,
     required: true,
   },
-  karma: Schema.Types.Mixed,
+  karma: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: -Infinity,
+    max: Infinity,
+  },
   history: [
     {
       timestamp: { type: Date, required: true },

@@ -118,7 +118,7 @@ const getTopGiven = async (groupId) => {
 };
 
 const transferKarma = async (msg, quantity = 0) => {
-  if (quantity < 0) {
+  if (quantity <= 0) {
     return "You must enter a positive number";
   }
 
