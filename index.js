@@ -329,6 +329,8 @@ bot.onText(/^\/send (.+)/, async (msg, match) => {
     return;
   }
 
+  if (msg.reply_to_message.from.id === msg.from.id) return;
+
   // Extracts the input quantity transfer from the command argument
   const input = match[1];
 
