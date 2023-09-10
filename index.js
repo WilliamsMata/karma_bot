@@ -317,11 +317,12 @@ bot.onText(/^\/history/, async (msg) => {
   }
 });
 
+// handle transfer karma from user to user
 bot.onText(/^\/send (.+)/, async (msg, match) => {
   if (!msg.reply_to_message) {
     bot.sendMessage(
       msg.chat.id,
-      "You need to reply to a user to send them karma",
+      "You need to reply to an user to send them karma",
       {
         reply_to_message_id: msg.message_id,
       }
@@ -356,6 +357,7 @@ bot.onText(/^\/send (.+)/, async (msg, match) => {
 
   const resp = await transferKarma(msg, quantity);
 
+  // handle resp
   if (!resp) {
     bot.sendMessage(msg.chat.id, "Error, check console", {
       reply_to_message_id: msg.message_id,

@@ -134,6 +134,7 @@ const transferKarma = async (msg, quantity = 0) => {
       groupId: msg.chat.id,
     });
 
+    // check if user have enough karma
     if (Number(userSenderKarma.karma) < quantity) {
       return "You don't have enough karma";
     }
