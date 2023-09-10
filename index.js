@@ -355,6 +355,17 @@ bot.onText(/^\/send (.+)/, async (msg, match) => {
     return;
   }
 
+  if (!Number.isInteger(quantity)) {
+    bot.sendMessage(
+      msg.chat.id,
+      "The amount must be a whole number without decimals. Ex: /send 10",
+      {
+        reply_to_message_id: msg.message_id,
+      }
+    );
+    return;
+  }
+
   const resp = await transferKarma(msg, quantity);
 
   // handle resp
