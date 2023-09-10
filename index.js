@@ -6,6 +6,7 @@ const {
   updateKarma,
   getTopKarma,
   getTopGiven,
+  transferKarma,
 } = require("./services/karma.service");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -316,6 +317,66 @@ bot.onText(/^\/history/, async (msg) => {
   }
 });
 
+bot.onText(/^\/send (.+)/, async (msg, match) => {
+  if (!msg.reply_to_message) {
+    bot.sendMessage(
+      msg.chat.id,
+      "You need to reply to a user to send them karma",
+      {
+        reply_to_message_id: msg.message_id,
+      }
+    );
+    return;
+  }
+
+  // Extracts the input quantity transfer from the command argument
+  const input = match[1];
+
+  if (!input) {
+    bot.sendMessage(
+      msg.chat.id,
+      "You need to send the quantity to be sent. Ex: /send 10",
+      {
+        reply_to_message_id: msg.message_id,
+      }
+    );
+    return;
+  }
+
+  const quantity = Number(input);
+
+  if (isNaN(quantity)) {
+    bot.sendMessage(msg.chat.id, "The amount must be a number. Ex: /send 10", {
+      reply_to_message_id: msg.message_id,
+    });
+    return;
+  }
+
+  const resp = await transferKarma(msg, quantity);
+
+  if (!resp) {
+    bot.sendMessage(msg.chat.id, "Error, check console", {
+      reply_to_message_id: msg.message_id,
+    });
+  } else if (typeof resp === "string") {
+    bot.sendMessage(msg.chat.id, resp, {
+      reply_to_message_id: msg.message_id,
+    });
+  } else {
+    bot.sendMessage(
+      msg.chat.id,
+      `${
+        resp.respSender.firstName ?? resp.respSender.userName
+      } has sent ${input} karma to ${
+        resp.respReceiver.firstName ?? resp.respReceiver.userName
+      }`,
+      {
+        reply_to_message_id: msg.message_id,
+      }
+    );
+  }
+});
+
 /* 
   Help message
 */
@@ -333,6 +394,7 @@ The following commands are available:
 - /history: Allows users in a Telegram group to view their own karma history in the group.
 - /getkarma <name or username>: Allows users in a Telegram group to view the karma of a specific user in the group.
 - /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
+- /send <amount>: Allows users in a Telegram group to transfer karma to a specific user in the group.
     `
   );
 });

@@ -117,8 +117,83 @@ const getTopGiven = async (groupId) => {
   }
 };
 
+const transferKarma = async (msg, quantity = 0) => {
+  if (quantity < 0) {
+    return "You must enter a positive number";
+  }
+
+  // Get the user who sent the message
+  const sender = msg.from;
+
+  // Get the user who received the karma
+  const receiver = msg.reply_to_message.from;
+
+  try {
+    const userSenderKarma = await Karma.findOne({
+      userId: sender.id,
+      groupId: msg.chat.id,
+    });
+
+    if (Number(userSenderKarma.karma) < quantity) {
+      return "You don't have enough karma";
+    }
+
+    const [respSender, respReceiver] = await Promise.all([
+      Karma.findOneAndUpdate(
+        // Find the user's karma document based on userId and groupId
+        {
+          userId: sender.id,
+          groupId: msg.chat.id,
+        },
+        // Update the givenKarma or givenHate value and user name
+        {
+          $inc: { karma: -quantity },
+          userName: sender.username,
+          firstName: sender.first_name,
+          history: {
+            timestamp: Date.now(),
+            karmaChange: -quantity,
+          },
+        },
+        // Create a new document if it doesn't exist
+        { upsert: true, new: true }
+      ),
+      Karma.findOneAndUpdate(
+        // Find the user's karma document based on userId and groupId
+        {
+          userId: receiver.id,
+          groupId: msg.chat.id,
+        },
+        // Update the karma value, user name, and history
+        {
+          $inc: { karma: quantity },
+          $push: {
+            history: {
+              timestamp: Date.now(),
+              karmaChange: quantity,
+            },
+          },
+          userName: receiver.username,
+          firstName: receiver.first_name,
+        },
+        // Create a new document if it doesn't exist
+        { upsert: true, new: true }
+      ),
+    ]);
+
+    return {
+      respSender,
+      respReceiver,
+    };
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
 module.exports = {
   updateKarma,
   getTopKarma,
   getTopGiven,
+  transferKarma,
 };

@@ -33,6 +33,7 @@ The following commands are available:
 - /history: Allows users in a Telegram group to view their own karma history in the group.
 - /getkarma <name or username>: Allows users in a Telegram group to view the karma of a specific user in the group.
 - /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
+- /send <amount>: Allows users in a Telegram group to transfer karma to a specific user in the group.
 - /help: Send this command to get info about the bot.
 
 # Acknowledgments
