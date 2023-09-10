@@ -21,7 +21,7 @@ const karmaLastGivenOrReceived = {};
 bot.on("message", async (msg) => {
   // console.log(msg);
 
-  if (!msg.text) return;
+  if (!msg.text || msg.text.startsWith("/")) return;
 
   if (msg.reply_to_message && msg.text?.includes("+1")) {
     if (msg.reply_to_message.from.id === msg.from.id) return;
@@ -48,7 +48,7 @@ bot.on("message", async (msg) => {
     // Update the state variable with the last time karma was given or received
     karmaLastGivenOrReceived[msg.from.id] = Date.now();
 
-    bot.sendMessage(
+    return bot.sendMessage(
       msg.chat.id,
       `${msg.reply_to_message.from.first_name} has now ${resp.respReceiver.karma} of karma`
     );
@@ -79,7 +79,7 @@ bot.on("message", async (msg) => {
     // Update the state variable with the last time karma was given or received
     karmaLastGivenOrReceived[msg.from.id] = Date.now();
 
-    bot.sendMessage(
+    return bot.sendMessage(
       msg.chat.id,
       `${msg.reply_to_message.from.first_name} has now ${resp.respReceiver.karma} of karma`
     );
