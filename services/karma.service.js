@@ -151,9 +151,11 @@ const transferKarma = async (msg, quantity = 0) => {
           $inc: { karma: -quantity },
           userName: sender.username,
           firstName: sender.first_name,
-          history: {
-            timestamp: Date.now(),
-            karmaChange: -quantity,
+          $push: {
+            history: {
+              timestamp: Date.now(),
+              karmaChange: -quantity,
+            },
           },
         },
         // Create a new document if it doesn't exist
