@@ -24,12 +24,6 @@ bot.on("message", async (msg) => {
   if (!msg.text || msg.text.startsWith("/")) return;
 
   if (msg.reply_to_message && msg.text?.includes("+1")) {
-    if (msg.reply_to_message.from.id === msg.from.id) return;
-
-    if (msg.from.username === "Channel_Bot") {
-      bot.sendMessage(msg.chat.id, `Lol what a cheater 🤦`);
-      return;
-    }
 
     // Check if enough time has passed since karma was last given or received
     const lastTime = karmaLastGivenOrReceived[msg.from.id];
