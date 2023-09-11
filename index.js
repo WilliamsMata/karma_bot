@@ -23,7 +23,10 @@ bot.on("message", async (msg) => {
 
   if (!msg.text || msg.text.startsWith("/")) return;
 
-  if (msg.reply_to_message && msg.text?.includes("+1")) {
+  if (
+    msg.reply_to_message &&
+    (msg.text?.includes("+1") || msg.text?.includes("-1"))
+  ) {
     if (msg.reply_to_message.from.id === msg.from.id) return;
 
     if (msg.from.username === "Channel_Bot") {
@@ -42,38 +45,7 @@ bot.on("message", async (msg) => {
     }
 
     // Update the user's karma score
-    const resp = await updateKarma(msg, 1);
-    if (!resp) return;
-
-    // Update the state variable with the last time karma was given or received
-    karmaLastGivenOrReceived[msg.from.id] = Date.now();
-
-    return bot.sendMessage(
-      msg.chat.id,
-      `${msg.reply_to_message.from.first_name} has now ${resp.respReceiver.karma} of karma`
-    );
-  }
-
-  if (msg.reply_to_message && msg.text?.includes("-1")) {
-    if (msg.reply_to_message.from.id === msg.from.id) return;
-
-    if (msg.from.username === "Channel_Bot") {
-      bot.sendMessage(msg.chat.id, `Lol what a cheater 🤦`);
-      return;
-    }
-
-    // Check if enough time has passed since karma was last given or received
-    const lastTime = karmaLastGivenOrReceived[msg.from.id];
-    if (lastTime && Date.now() - lastTime < 60000) {
-      bot.sendMessage(
-        msg.chat.id,
-        "Please wait 1 minute before giving karma again."
-      );
-      return;
-    }
-
-    // Update the user's karma score
-    const resp = await updateKarma(msg, -1);
+    const resp = await updateKarma(msg, msg.text?.includes("+1") ? 1 : -1);
     if (!resp) return;
 
     // Update the state variable with the last time karma was given or received
