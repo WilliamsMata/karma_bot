@@ -30,17 +30,21 @@ bot.on("message", async (msg) => {
     if (msg.reply_to_message.from.id === msg.from.id) return;
 
     if (msg.from.username === "Channel_Bot") {
-      bot.sendMessage(msg.chat.id, `Lol what a cheater 🤦`);
+      bot
+        .sendMessage(msg.chat.id, `Lol what a cheater 🤦`)
+        .catch((error) => console.log(error));
       return;
     }
 
     // Check if enough time has passed since karma was last given or received
     const lastTime = karmaLastGivenOrReceived[msg.from.id];
     if (lastTime && Date.now() - lastTime < 60000) {
-      bot.sendMessage(
-        msg.chat.id,
-        "Please wait 1 minute before giving karma again."
-      );
+      bot
+        .sendMessage(
+          msg.chat.id,
+          "Please wait 1 minute before giving karma again."
+        )
+        .catch((error) => console.log(error));
       return;
     }
 
@@ -51,10 +55,12 @@ bot.on("message", async (msg) => {
     // Update the state variable with the last time karma was given or received
     karmaLastGivenOrReceived[msg.from.id] = Date.now();
 
-    return bot.sendMessage(
-      msg.chat.id,
-      `${msg.reply_to_message.from.first_name} has now ${resp.respReceiver.karma} of karma`
-    );
+    return bot
+      .sendMessage(
+        msg.chat.id,
+        `${msg.reply_to_message.from.first_name} has now ${resp.respReceiver.karma} of karma`
+      )
+      .catch((error) => console.log(error));
   }
 });
 
@@ -67,7 +73,9 @@ bot.onText(/^\/me/, async (msg) => {
     });
 
     if (!karma) {
-      bot.sendMessage(msg.chat.id, `Your karma is 0`);
+      bot
+        .sendMessage(msg.chat.id, `Your karma is 0`)
+        .catch((error) => console.log(error));
       return;
     }
 
@@ -75,9 +83,10 @@ bot.onText(/^\/me/, async (msg) => {
     const karmaScore = karma.karma ? karma.karma : 0;
 
     // Send a message with the user's karma score
-    bot.sendMessage(
-      msg.chat.id,
-      `
+    bot
+      .sendMessage(
+        msg.chat.id,
+        `
       🙋 Hi ${
         msg.from.username ? `@${msg.from.username}` : msg.from.first_name
       } your karma is ${karmaScore}.
@@ -85,7 +94,8 @@ bot.onText(/^\/me/, async (msg) => {
 ♥ Given karma: ${karma.givenKarma}.
 😠 Given hate: ${karma.givenHate}.
     `
-    );
+      )
+      .catch((error) => console.log(error));
   } catch (error) {
     console.log(error);
   }
@@ -106,7 +116,7 @@ bot.onText(/^\/top/, async (msg) => {
   });
 
   // Send the message with the top karma users
-  bot.sendMessage(msg.chat.id, message);
+  bot.sendMessage(msg.chat.id, message).catch((error) => console.log(error));
 });
 
 bot.onText(/^\/hate/, async (msg) => {
@@ -124,7 +134,7 @@ bot.onText(/^\/hate/, async (msg) => {
   });
 
   // Send the message with the top karma users
-  bot.sendMessage(msg.chat.id, message);
+  bot.sendMessage(msg.chat.id, message).catch((error) => console.log(error));
 });
 
 bot.onText(/^\/mostgivers/, async (msg) => {
@@ -153,7 +163,7 @@ bot.onText(/^\/mostgivers/, async (msg) => {
   });
 
   // Send the message with the top karma users
-  bot.sendMessage(msg.chat.id, message);
+  bot.sendMessage(msg.chat.id, message).catch((error) => console.log(error));
 });
 
 // Handles the "/getkarma" command to view the karma of a specific user in the group
@@ -175,10 +185,12 @@ bot.onText(/^\/getkarma (.+)/, async (msg, match) => {
     const karma = await Karma.findOne(query);
     // If the user's karma history is not found, sends an error message and exits the function
     if (!karma) {
-      bot.sendMessage(
-        msg.chat.id,
-        `No karma found for user ${input} in this group.`
-      );
+      bot
+        .sendMessage(
+          msg.chat.id,
+          `No karma found for user ${input} in this group.`
+        )
+        .catch((error) => console.log(error));
       return;
     }
 
@@ -186,15 +198,17 @@ bot.onText(/^\/getkarma (.+)/, async (msg, match) => {
     const karmaScore = karma.karma ? karma.karma : 0;
 
     // Send a message with the user's karma score
-    bot.sendMessage(
-      msg.chat.id,
-      `
+    bot
+      .sendMessage(
+        msg.chat.id,
+        `
       ${input} has ${karmaScore} karma.
 
 ♥ Given karma: ${karma.givenKarma}.
 😠 Given hate: ${karma.givenHate}.
     `
-    );
+      )
+      .catch((error) => console.log(error));
   } catch (error) {
     console.log(error);
   }
@@ -219,20 +233,24 @@ bot.onText(/^\/gethistory (.+)/, async (msg, match) => {
     const karma = await Karma.findOne(query);
     // If the user's karma history is not found, sends an error message and exits the function
     if (!karma) {
-      bot.sendMessage(
-        msg.chat.id,
-        `No karma history found for user ${input} in this group.`
-      );
+      bot
+        .sendMessage(
+          msg.chat.id,
+          `No karma history found for user ${input} in this group.`
+        )
+        .catch((error) => console.log(error));
       return;
     }
     // Gets the last 10 entries from the user's karma history
     const history = karma.history.slice(-10);
     // If there are no entries in the user's karma history, sends an error message and exits the function
     if (history.length === 0) {
-      bot.sendMessage(
-        msg.chat.id,
-        `No karma history found for user ${input} in this group.`
-      );
+      bot
+        .sendMessage(
+          msg.chat.id,
+          `No karma history found for user ${input} in this group.`
+        )
+        .catch((error) => console.log(error));
       return;
     }
     // Creates a message with the user's karma history and sends it to the chat
@@ -243,7 +261,7 @@ bot.onText(/^\/gethistory (.+)/, async (msg, match) => {
         entry.karmaChange
       }\n`;
     });
-    bot.sendMessage(msg.chat.id, message);
+    bot.sendMessage(msg.chat.id, message).catch((error) => console.log(error));
   } catch (error) {
     console.log(error);
   }
@@ -283,7 +301,7 @@ bot.onText(/^\/history/, async (msg) => {
         entry.karmaChange
       }\n`;
     });
-    bot.sendMessage(msg.chat.id, message);
+    bot.sendMessage(msg.chat.id, message).catch((error) => console.log(error));
   } catch (error) {
     console.log(error);
   }
@@ -292,13 +310,15 @@ bot.onText(/^\/history/, async (msg) => {
 // handle transfer karma from user to user
 bot.onText(/^\/send (.+)/, async (msg, match) => {
   if (!msg.reply_to_message) {
-    bot.sendMessage(
-      msg.chat.id,
-      "You need to reply to an user to send them karma",
-      {
-        reply_to_message_id: msg.message_id,
-      }
-    );
+    bot
+      .sendMessage(
+        msg.chat.id,
+        "You need to reply to an user to send them karma",
+        {
+          reply_to_message_id: msg.message_id,
+        }
+      )
+      .catch((error) => console.log(error));
     return;
   }
 
@@ -308,33 +328,39 @@ bot.onText(/^\/send (.+)/, async (msg, match) => {
   const input = match[1];
 
   if (!input) {
-    bot.sendMessage(
-      msg.chat.id,
-      "You need to send the quantity to be sent. Ex: /send 10",
-      {
-        reply_to_message_id: msg.message_id,
-      }
-    );
+    bot
+      .sendMessage(
+        msg.chat.id,
+        "You need to send the quantity to be sent. Ex: /send 10",
+        {
+          reply_to_message_id: msg.message_id,
+        }
+      )
+      .catch((error) => console.log(error));
     return;
   }
 
   const quantity = Number(input);
 
   if (isNaN(quantity)) {
-    bot.sendMessage(msg.chat.id, "The amount must be a number. Ex: /send 10", {
-      reply_to_message_id: msg.message_id,
-    });
+    bot
+      .sendMessage(msg.chat.id, "The amount must be a number. Ex: /send 10", {
+        reply_to_message_id: msg.message_id,
+      })
+      .catch((error) => console.log(error));
     return;
   }
 
   if (!Number.isInteger(quantity)) {
-    bot.sendMessage(
-      msg.chat.id,
-      "The amount must be a whole number without decimals. Ex: /send 10",
-      {
-        reply_to_message_id: msg.message_id,
-      }
-    );
+    bot
+      .sendMessage(
+        msg.chat.id,
+        "The amount must be a whole number without decimals. Ex: /send 10",
+        {
+          reply_to_message_id: msg.message_id,
+        }
+      )
+      .catch((error) => console.log(error));
     return;
   }
 
@@ -342,25 +368,31 @@ bot.onText(/^\/send (.+)/, async (msg, match) => {
 
   // handle resp
   if (!resp) {
-    bot.sendMessage(msg.chat.id, "Error, check console", {
-      reply_to_message_id: msg.message_id,
-    });
-  } else if (typeof resp === "string") {
-    bot.sendMessage(msg.chat.id, resp, {
-      reply_to_message_id: msg.message_id,
-    });
-  } else {
-    bot.sendMessage(
-      msg.chat.id,
-      `${
-        resp.respSender.firstName ?? resp.respSender.userName
-      } has sent ${input} karma to ${
-        resp.respReceiver.firstName ?? resp.respReceiver.userName
-      }`,
-      {
+    bot
+      .sendMessage(msg.chat.id, "Error, check console", {
         reply_to_message_id: msg.message_id,
-      }
-    );
+      })
+      .catch((error) => console.log(error));
+  } else if (typeof resp === "string") {
+    bot
+      .sendMessage(msg.chat.id, resp, {
+        reply_to_message_id: msg.message_id,
+      })
+      .catch((error) => console.log(error));
+  } else {
+    bot
+      .sendMessage(
+        msg.chat.id,
+        `${
+          resp.respSender.firstName ?? resp.respSender.userName
+        } has sent ${input} karma to ${
+          resp.respReceiver.firstName ?? resp.respReceiver.userName
+        }`,
+        {
+          reply_to_message_id: msg.message_id,
+        }
+      )
+      .catch((error) => console.log(error));
   }
 });
 
@@ -368,9 +400,10 @@ bot.onText(/^\/send (.+)/, async (msg, match) => {
   Help message
 */
 bot.onText(/^\/help/, (msg) => {
-  bot.sendMessage(
-    msg.chat.id,
-    `
+  bot
+    .sendMessage(
+      msg.chat.id,
+      `
 The following commands are available:
 
 - +1 or -1: Respond to a message with +1 to increase the karma of the person who sent the message, or -1 to decrease it.
@@ -383,5 +416,6 @@ The following commands are available:
 - /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
 - /send <amount>: Allows users in a Telegram group to transfer karma to a specific user in the group.
     `
-  );
+    )
+    .catch((error) => console.log(error));
 });
