@@ -405,17 +405,14 @@ bot.onText(/^\/today/, async (msg) => {
     bot
       .sendMessage(
         msg.chat.id,
-        `
-      Top 10 users that received karma in the last 24 hours:
-      ${topUsers
-        .map(
-          (user, index) =>
-            `${index + 1}. ${user.firstName} received ${
-              user.totalKarmaReceived
-            } karma`
-        )
-        .join("\n")}
-      `
+        `Top 10 users that received karma in the last 24 hours:\n${topUsers
+          .map(
+            (user, index) =>
+              `${index + 1}. ${user.firstName} received ${
+                user.totalKarmaReceived
+              } karma`
+          )
+          .join("\n")}`
       )
       .catch((error) => console.log(error));
   } catch (error) {
@@ -432,8 +429,7 @@ bot.onText(/^\/month/, async (msg) => {
       .sendMessage(
         msg.chat.id,
         `
-      Top 10 users that received karma in the last 30 days:
-      ${topUsers
+      Top 10 users that received karma in the last 30 days:\n${topUsers
         .map(
           (user, index) =>
             `${index + 1}. ${user.firstName} received ${
@@ -458,8 +454,7 @@ bot.onText(/^\/year/, async (msg) => {
       .sendMessage(
         msg.chat.id,
         `
-      Top 10 users that received karma in the last 365 days:
-      ${topUsers
+      Top 10 users that received karma in the last 365 days:\n${topUsers
         .map(
           (user, index) =>
             `${index + 1}. ${user.firstName} received ${
