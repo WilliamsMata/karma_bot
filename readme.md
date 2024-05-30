@@ -35,6 +35,9 @@ The following commands are available:
 - /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
 - /send <amount>: Allows users in a Telegram group to transfer karma to a specific user in the group.
 - /help: Send this command to get info about the bot.
+- /today: Allows users in a Telegram group to view the top 10 users that received karma today.
+- /month: Allows users in a Telegram group to view the top 10 users that received karma this month.
+- /year: Allows users in a Telegram group to view the top 10 users that received karma this year.
 
 # Acknowledgments
 
