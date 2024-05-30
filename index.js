@@ -7,6 +7,7 @@ const {
   getTopKarma,
   getTopGiven,
   transferKarma,
+  getTopUsersByGroupId,
 } = require("./services/karma.service");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -396,6 +397,84 @@ bot.onText(/^\/send (.+)/, async (msg, match) => {
   }
 });
 
+// Handles the "/today" command to view the top 10 users that received karma today
+bot.onText(/^\/today/, async (msg) => {
+  try {
+    const topUsers = await getTopUsersByGroupId(msg.chat.id);
+
+    bot
+      .sendMessage(
+        msg.chat.id,
+        `
+      Top 10 users that received karma in the last 24 hours:
+      ${topUsers
+        .map(
+          (user, index) =>
+            `${index + 1}. ${user.firstName} received ${
+              user.totalKarmaReceived
+            } karma`
+        )
+        .join("\n")}
+      `
+      )
+      .catch((error) => console.log(error));
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+// Handles the "/month" command to view the top 10 users that received karma this month
+bot.onText(/^\/month/, async (msg) => {
+  try {
+    const topUsers = await getTopUsersByGroupId(msg.chat.id, 30);
+
+    bot
+      .sendMessage(
+        msg.chat.id,
+        `
+      Top 10 users that received karma in the last 30 days:
+      ${topUsers
+        .map(
+          (user, index) =>
+            `${index + 1}. ${user.firstName} received ${
+              user.totalKarmaReceived
+            } karma`
+        )
+        .join("\n")}
+      `
+      )
+      .catch((error) => console.log(error));
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+// Handles the "/year" command to view the top 10 users that received karma this year
+bot.onText(/^\/year/, async (msg) => {
+  try {
+    const topUsers = await getTopUsersByGroupId(msg.chat.id, 365);
+
+    bot
+      .sendMessage(
+        msg.chat.id,
+        `
+      Top 10 users that received karma in the last 365 days:
+      ${topUsers
+        .map(
+          (user, index) =>
+            `${index + 1}. ${user.firstName} received ${
+              user.totalKarmaReceived
+            } karma`
+        )
+        .join("\n")}
+      `
+      )
+      .catch((error) => console.log(error));
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 /* 
   Help message
 */
@@ -415,6 +494,9 @@ The following commands are available:
 - /getkarma <name or username>: Allows users in a Telegram group to view the karma of a specific user in the group.
 - /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
 - /send <amount>: Allows users in a Telegram group to transfer karma to a specific user in the group.
+- /today: Allows users in a Telegram group to view the top 10 users that received karma today.
+- /month: Allows users in a Telegram group to view the top 10 users that received karma this month.
+- /year: Allows users in a Telegram group to view the top 10 users that received karma this year.
     `
     )
     .catch((error) => console.log(error));

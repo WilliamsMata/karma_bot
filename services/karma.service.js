@@ -194,9 +194,64 @@ const transferKarma = async (msg, quantity = 0) => {
   }
 };
 
+async function getTopUsersByGroupId(groupId, daysBack = 1) {
+  try {
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - daysBack);
+
+    const topUsers = await Karma.aggregate([
+      {
+        $match: {
+          groupId: groupId,
+        },
+      },
+      {
+        $addFields: {
+          filteredHistory: {
+            $filter: {
+              input: "$history",
+              as: "item",
+              cond: {
+                $and: [
+                  { $gte: ["$$item.timestamp", startDate] },
+                  { $lt: ["$$item.timestamp", now] },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $unwind: "$filteredHistory",
+      },
+      {
+        $group: {
+          _id: "$userId",
+          totalKarmaReceived: { $sum: "$filteredHistory.karmaChange" },
+          userName: { $first: "$userName" },
+          firstName: { $first: "$firstName" },
+        },
+      },
+      {
+        $sort: { totalKarmaReceived: -1 },
+      },
+      {
+        $limit: 10,
+      },
+    ]);
+
+    return topUsers;
+  } catch (error) {
+    console.error("Error fetching top users:", error);
+    throw error;
+  }
+}
+
 module.exports = {
   updateKarma,
   getTopKarma,
   getTopGiven,
   transferKarma,
+  getTopUsersByGroupId,
 };
