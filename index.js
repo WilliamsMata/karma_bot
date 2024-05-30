@@ -470,6 +470,24 @@ bot.onText(/^\/year/, async (msg) => {
   }
 });
 
+bot.onText(/^\/groups/, async (msg) => {
+  try {
+    const distinctGroupIds = await Karma.distinct("groupId");
+
+    bot
+      .sendMessage(
+        msg.chat.id,
+        `
+      Groups: ${distinctGroupIds.join(", ")}
+      Total groups: ${distinctGroupIds.length}
+      `
+      )
+      .catch((error) => console.log(error));
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 /* 
   Help message
 */
