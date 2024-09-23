@@ -1,19 +1,32 @@
-FROM node:lts-alpine
 
-# Create app directory
-WORKDIR /app
+# ? Stage 1: install dependencies
+FROM node:lts-alpine AS deps
 
-# Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-# where available (npm@5+)
+WORKDIR /usr/src/app
+
 COPY package*.json ./
 
-# RUN npm install
-# If you are building your code for production
-RUN npm ci --omit=dev
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
 
-# Bundle app source
+# ? Stage 2: Run the app
+FROM node:lts-alpine AS runner
+
+WORKDIR /usr/src/app
+
+# Copy node_modules from deps stage
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+
+# Copy the source code
 COPY . .
 
-EXPOSE 8080
-CMD [ "node", "index.js" ]
+ENV NODE_ENV=production
+
+# Set the user because running as root is a security risk
+USER node
+
+# Expose the port
+EXPOSE 3000 
+
+# Run the app
+CMD ["node", "dist/main.js"]
