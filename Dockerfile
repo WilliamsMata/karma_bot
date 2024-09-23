@@ -29,4 +29,4 @@ USER node
 EXPOSE 3000 
 
 # Run the app
-CMD ["node", "dist/main.js"]
+CMD ["node", "index.js"]
