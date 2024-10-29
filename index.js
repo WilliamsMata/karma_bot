@@ -20,49 +20,51 @@ const bot = new TelegramBot(token, { polling: true });
 const karmaLastGivenOrReceived = {};
 
 bot.on("message", async (msg) => {
-  // console.log(msg);
-
   if (!msg.text || msg.text.startsWith("/")) return;
 
-  if (
-    msg.reply_to_message &&
-    (msg.text?.includes("+1") || msg.text?.includes("-1"))
-  ) {
-    if (msg.reply_to_message.from.id === msg.from.id) return;
+  const karmaRegex = /(^|\s)(\+|-)1(\s|$)/;
 
-    if (msg.from.username === "Channel_Bot") {
-      bot
-        .sendMessage(msg.chat.id, `Lol what a cheater 🤦`)
-        .catch((error) => console.log(error));
-      return;
-    }
+  if (!msg.reply_to_message || !karmaRegex.test(msg.reply_to_message.text))
+    return;
 
-    // Check if enough time has passed since karma was last given or received
-    const lastTime = karmaLastGivenOrReceived[msg.from.id];
-    if (lastTime && Date.now() - lastTime < 60000) {
-      bot
-        .sendMessage(
-          msg.chat.id,
-          "Please wait 1 minute before giving karma again."
-        )
-        .catch((error) => console.log(error));
-      return;
-    }
+  if (msg.reply_to_message.from.id === msg.from.id) return;
 
-    // Update the user's karma score
-    const resp = await updateKarma(msg, msg.text?.includes("+1") ? 1 : -1);
-    if (!resp) return;
+  if (msg.from.username === "Channel_Bot") {
+    bot
+      .sendMessage(msg.chat.id, `Lol what a cheater 🤦`)
+      .catch((error) => console.log(error));
+    return;
+  }
 
-    // Update the state variable with the last time karma was given or received
-    karmaLastGivenOrReceived[msg.from.id] = Date.now();
-
-    return bot
+  // Check if enough time has passed since karma was last given or received
+  const lastTime = karmaLastGivenOrReceived[msg.from.id];
+  if (lastTime && Date.now() - lastTime < 60000) {
+    bot
       .sendMessage(
         msg.chat.id,
-        `${msg.reply_to_message.from.first_name} has now ${resp.respReceiver.karma} of karma`
+        "Please wait 1 minute before giving karma again."
       )
       .catch((error) => console.log(error));
+    return;
   }
+
+  // Determine the karma value based on the regex match
+  const match = msg.text.match(karmaRegex);
+  const karmaValue = match[2] === "+" ? 1 : -1;
+
+  // Update the user's karma score
+  const resp = await updateKarma(msg, karmaValue);
+  if (!resp) return;
+
+  // Update the state variable with the last time karma was given or received
+  karmaLastGivenOrReceived[msg.from.id] = Date.now();
+
+  return bot
+    .sendMessage(
+      msg.chat.id,
+      `${msg.reply_to_message.from.first_name} has now ${resp.respReceiver.karma} of karma`
+    )
+    .catch((error) => console.log(error));
 });
 
 bot.onText(/^\/me/, async (msg) => {
