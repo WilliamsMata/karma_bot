@@ -24,8 +24,7 @@ bot.on("message", async (msg) => {
 
   const karmaRegex = /(^|\s)(\+|-)1(\s|$)/;
 
-  if (!msg.reply_to_message || !karmaRegex.test(msg.reply_to_message.text))
-    return;
+  if (!msg.reply_to_message || !karmaRegex.test(msg.text)) return;
 
   if (msg.reply_to_message.from.id === msg.from.id) return;
 
