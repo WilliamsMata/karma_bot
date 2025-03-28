@@ -1,5 +1,5 @@
 const Karma = require("../models/Karma");
-const logger = require("../utils/logger"); // Asumiendo un logger simple
+const logger = require("../utils/logger");
 
 /**
  * Actualiza el karma de un usuario receptor y registra quién lo dio.

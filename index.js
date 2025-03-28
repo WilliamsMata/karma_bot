@@ -1,10 +1,8 @@
-// index.js
-require("dotenv").config();
-const express = require("express"); // <-- Importar Express
+const express = require("express");
 const { dbConnection } = require("./src/config/database");
 const { initializeBot } = require("./src/bot/eventListeners");
-const { port } = require("./src/config/environment"); // <-- Importar el puerto
-const karmaApiRoutes = require("./src/api/routes/karmaRoutes"); // <-- Importar las rutas de la API
+const { port } = require("./src/config/environment");
+const karmaApiRoutes = require("./src/api/routes/karmaRoutes");
 const logger = require("./src/utils/logger");
 
 async function main() {
