@@ -77,7 +77,7 @@ const getTopKarma = async (groupId, ascending = false, limit = 10) => {
     // Construir la query inicial
     const query = Karma.find(
       { groupId, karma: { $exists: true } },
-      "karma firstName userName userId history givenKarma givenHate createdAt updatedAt"
+      "karma firstName userName userId givenKarma givenHate createdAt updatedAt"
     ).sort({ karma: sortOrder });
 
     // Aplicar el límite solo si es un número positivo
