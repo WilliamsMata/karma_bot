@@ -1,4 +1,5 @@
-const bot = require("./botInstance");
+// src/bot/eventListeners.js
+const bot = require("./botInstance"); // Importar la instancia del bot
 const { handleKarmaMessage } = require("../handlers/messageHandler");
 const {
   handleMeCommand,
@@ -22,36 +23,46 @@ const initializeBot = () => {
   logger.info("Registering bot event listeners...");
 
   // Listener para mensajes generales (posiblemente +1/-1)
-  // Se ejecuta para CUALQUIER mensaje, así que el handler debe filtrar bien.
   bot.on("message", (msg) => {
-    // Evitar procesar mensajes editados o de canales si no se desea
-    if (msg.edit_date || msg.forward_date) return;
-    // Llamar al manejador de mensajes de karma
-    handleKarmaMessage(msg);
+    if (msg.edit_date || msg.forward_date || !msg.text) return; // Ignorar editados, reenviados o sin texto
+    // Solo llamar a handleKarmaMessage si NO es un comando para evitar doble procesamiento
+    if (!msg.text.startsWith("/")) {
+      handleKarmaMessage(msg);
+    }
   });
 
-  // Listeners para comandos específicos usando onText
-  bot.onText(/^\/me$/, handleMeCommand);
-  bot.onText(/^\/top$/, handleTopCommand);
-  bot.onText(/^\/hate$/, handleHateCommand);
-  bot.onText(/^\/mostgivers$/, handleMostGiversCommand);
-  bot.onText(/^\/history$/, handleHistoryCommand);
-  bot.onText(/^\/help$/, handleHelpCommand);
-  bot.onText(/^\/groups$/, handleGroupsCommand);
+  // Regex Helper: Añade opcionalmente la parte de @botusername
+  // Ejemplo: /command OR /command@my_bot_name
+  const cmd = (command) => new RegExp(`^\\/${command}(?:@\\w+)?$`);
+  // Regex Helper para comandos con argumentos:
+  // Ejemplo: /command arg OR /command@my_bot_name arg
+  const cmdWithArg = (command) =>
+    new RegExp(`^\\/${command}(?:@\\w+)?\\s+(.+)$`);
+  // Regex Helper para comando /send con argumento numérico
+  const sendCmd = () => new RegExp(`^\\/send(?:@\\w+)?\\s+(\\d+)$`);
+
+  // Listeners para comandos específicos usando onText con regex mejorado
+  bot.onText(cmd("me"), handleMeCommand);
+  bot.onText(cmd("top"), handleTopCommand);
+  bot.onText(cmd("hate"), handleHateCommand);
+  bot.onText(cmd("mostgivers"), handleMostGiversCommand);
+  bot.onText(cmd("history"), handleHistoryCommand);
+  bot.onText(cmd("help"), handleHelpCommand);
+  bot.onText(cmd("groups"), handleGroupsCommand);
 
   // Comandos con argumentos
-  bot.onText(/^\/getkarma(?:@\w+)?\s+(.+)/, handleGetKarmaCommand); // Acepta /getkarma @user o /getkarma user name
-  bot.onText(/^\/gethistory(?:@\w+)?\s+(.+)/, handleGetHistoryCommand);
-  bot.onText(/^\/send\s+(\d+)/, handleSendCommand);
+  bot.onText(cmdWithArg("getkarma"), handleGetKarmaCommand);
+  bot.onText(cmdWithArg("gethistory"), handleGetHistoryCommand);
+  bot.onText(sendCmd(), handleSendCommand);
 
   // Comandos de tiempo para top recibidos
-  bot.onText(/^\/today$/, (msg) =>
+  bot.onText(cmd("today"), (msg) =>
     handleTopReceivedCommand(msg, 1, "last 24 hours")
   );
-  bot.onText(/^\/month$/, (msg) =>
+  bot.onText(cmd("month"), (msg) =>
     handleTopReceivedCommand(msg, 30, "last 30 days")
   );
-  bot.onText(/^\/year$/, (msg) =>
+  bot.onText(cmd("year"), (msg) =>
     handleTopReceivedCommand(msg, 365, "last 365 days")
   );
 
