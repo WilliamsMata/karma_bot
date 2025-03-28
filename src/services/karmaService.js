@@ -27,6 +27,7 @@ const updateKarma = async (msg, incValue = 1) => {
             // Usar $set para actualizar datos que no son incrementales
             userName: sender.username,
             firstName: sender.first_name,
+            lastName: sender.last_name,
           },
         },
         { upsert: true, new: true, setDefaultsOnInsert: true } // setDefaultsOnInsert asegura que los defaults del schema se apliquen en la creación
@@ -46,6 +47,7 @@ const updateKarma = async (msg, incValue = 1) => {
             // Usar $set para actualizar datos que no son incrementales
             userName: receiver.username,
             firstName: receiver.first_name,
+            lastName: receiver.last_name,
           },
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -160,7 +162,11 @@ const transferKarma = async (msg, quantity) => {
         { userId: sender.id, groupId },
         {
           $inc: { karma: -quantity },
-          $set: { userName: sender.username, firstName: sender.first_name },
+          $set: {
+            userName: sender.username,
+            firstName: sender.first_name,
+            lastName: sender.last_name,
+          },
           $push: { history: { karmaChange: -quantity } },
         },
         { new: true }
@@ -170,7 +176,11 @@ const transferKarma = async (msg, quantity) => {
         { userId: receiver.id, groupId },
         {
           $inc: { karma: quantity },
-          $set: { userName: receiver.username, firstName: receiver.first_name },
+          $set: {
+            userName: receiver.username,
+            firstName: receiver.first_name,
+            lastName: receiver.last_name,
+          },
           $push: { history: { karmaChange: quantity } },
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }

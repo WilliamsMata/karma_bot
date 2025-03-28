@@ -14,6 +14,9 @@ const KarmaSchema = Schema(
       type: String,
       required: true,
     },
+    lastName: {
+      type: String,
+    },
     groupId: {
       type: Number,
       required: true,
