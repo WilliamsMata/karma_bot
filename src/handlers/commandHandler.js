@@ -1,4 +1,6 @@
 const Karma = require("../models/Karma");
+const User = require("../models/User");
+const Group = require("../models/Group");
 const {
   getTopKarma,
   getTopGiven,
@@ -30,28 +32,67 @@ const safeSendMessage = (chatId, text, options = {}) => {
  * @param {object} user - Objeto usuario con `firstName` y `userName`.
  * @returns {string} Nombre formateado.
  */
-const formatUserName = (user) => {
+const formatUserName = (userOrKarmaDoc) => {
+  // Asume que userOrKarmaDoc puede ser el doc Karma poblado o directamente el doc User
+  const user = userOrKarmaDoc?.user ? userOrKarmaDoc.user : userOrKarmaDoc;
   if (!user) return "Unknown User";
-  return user.userName ? `@${user.userName}` : user.firstName || "User";
+  // Usa los campos del modelo User (userId, userName, firstName)
+  return user.userName
+    ? `@${user.userName}`
+    : user.firstName || `User ${user.userId || ""}`.trim();
 };
 
 /**
- * Busca un usuario por nombre o username en un grupo específico.
+ * Busca el registro Karma de un usuario (por nombre o @username) en un grupo específico.
  * @param {string} input - El nombre o @username ingresado.
- * @param {number} groupId - El ID del grupo.
- * @returns {Promise<object|null>} El documento Karma del usuario o null si no se encuentra.
+ * @param {number} groupId - El ID numérico del grupo.
+ * @returns {Promise<object|null>} El documento Karma poblado con user y group, o null.
  */
 const findUserKarma = async (input, groupId) => {
-  const isUsername = input.startsWith("@");
-  const queryValue = isUsername ? input.substring(1) : input;
-  // Usar regex case-insensitive para la búsqueda
-  const query = isUsername
-    ? { userName: { $regex: new RegExp(`^${queryValue}$`, "i") }, groupId }
-    : { firstName: { $regex: new RegExp(`^${queryValue}$`, "i") }, groupId };
-
   try {
-    const karmaDoc = await Karma.findOne(query).lean(); // Usar lean si solo leemos datos
-    return karmaDoc;
+    // 1. Buscar el grupo
+    const groupDoc = await Group.findOne({ groupId }).lean();
+    if (!groupDoc) return null; // Grupo no encontrado en DB
+
+    // 2. Buscar el usuario
+    const isUsername = input.startsWith("@");
+    const queryValue = isUsername ? input.substring(1) : input;
+    const userQuery = isUsername
+      ? { userName: { $regex: new RegExp(`^${queryValue}$`, "i") } }
+      : // Busca por nombre O apellido (más flexible) si no es username
+        {
+          $or: [
+            { firstName: { $regex: new RegExp(`^${queryValue}$`, "i") } },
+            { lastName: { $regex: new RegExp(`^${queryValue}$`, "i") } },
+          ],
+        };
+
+    // Podrían coincidir varios usuarios si se busca por nombre
+    const users = await User.find(userQuery).lean();
+
+    if (!users || users.length === 0) {
+      return null; // Usuario no encontrado
+    }
+
+    // Si coincide más de un usuario por nombre, podríamos loguear o devolver el primero.
+    // Por simplicidad, usaremos el primero encontrado. Podría mejorarse pidiendo @username.
+    if (users.length > 1) {
+      logger.warn(
+        `findUserKarma: Multiple users found for input "${input}" in group ${groupId}. Using the first one found: ${users[0].userId}`
+      );
+    }
+    const userDoc = users[0];
+
+    // 3. Buscar el registro Karma que enlaza usuario y grupo
+    const karmaDoc = await Karma.findOne({
+      user: userDoc._id,
+      group: groupDoc._id,
+    })
+      .populate("user") // Poblar User
+      .populate("group") // Poblar Group
+      .lean(); // Usar lean después de populate
+
+    return karmaDoc; // Puede ser null si el usuario no tiene registro Karma en ESE grupo
   } catch (error) {
     logger.error(
       `Error finding user karma for input "${input}" in group ${groupId}:`,
@@ -72,33 +113,44 @@ const handleMeCommand = async (msg) => {
   const chatId = msg.chat.id;
 
   try {
-    const karma = await Karma.findOne({ userId, groupId: chatId }).lean();
+    // 1. Buscar User y Group
+    const userDoc = await User.findOne({ userId }).lean();
+    const groupDoc = await Group.findOne({ groupId: chatId }).lean();
 
-    const senderName = formatUserName(karma);
+    let karmaDoc = null;
+    if (userDoc && groupDoc) {
+      // 2. Buscar Karma específico
+      karmaDoc = await Karma.findOne({ user: userDoc._id, group: groupDoc._id })
+        .populate("user") // Poblar para formatUserName
+        .lean();
+    }
 
-    if (!karma) {
+    const senderName = formatUserName(userDoc || msg.from); // Usar datos de msg.from si no está en DB
+
+    if (!karmaDoc) {
+      // Si no hay registro Karma para este usuario en este grupo
       safeSendMessage(
         chatId,
-        `🙋 Hi ${senderName}, your karma is 0.\n\n♥ Given karma: 0.\n😠 Given hate: 0.`
+        `🙋 Hi ${senderName}, your karma is 0 in this group.\n\n♥ Given karma: 0.\n😠 Given hate: 0.`
       );
       return;
     }
 
+    // El karmaDoc ya tiene los datos poblados si se encontró
     const message = `
-🙋 Hi ${senderName}, your karma is ${karma.karma || 0}.
+🙋 Hi ${formatUserName(karmaDoc.user)}, your karma is ${
+      karmaDoc.karma || 0
+    } in this group.
 
-♥ Given karma: ${karma.givenKarma || 0}.
-😠 Given hate: ${karma.givenHate || 0}.
+♥ Given karma: ${karmaDoc.givenKarma || 0}.
+😠 Given hate: ${karmaDoc.givenHate || 0}.
     `;
     safeSendMessage(chatId, message.trim());
   } catch (error) {
+    // ... manejo de error ...
     logger.error(
       `Error handling /me command for user ${userId} in group ${chatId}:`,
       error
-    );
-    safeSendMessage(
-      chatId,
-      "Sorry, I couldn't retrieve your karma information."
     );
   }
 };
@@ -110,25 +162,27 @@ const handleMeCommand = async (msg) => {
 const handleTopCommand = async (msg) => {
   const chatId = msg.chat.id;
   try {
-    const topKarmaUsers = await getTopKarma(chatId, false, 10); // false = descending (top)
+    // El servicio ahora devuelve objetos con { karma, userId, firstName, userName }
+    const topKarmaUsers = await getTopKarma(chatId, false, 10);
 
     if (!topKarmaUsers || topKarmaUsers.length === 0) {
+      // ... mensaje no data ...
       safeSendMessage(chatId, "No karma data available yet for this group.");
       return;
     }
 
     let message = "🏆 Top 10 Karma Users:\n\n";
-    topKarmaUsers.forEach((user, index) => {
-      const name =
-        user.firstName ||
-        (user.userName ? `@${user.userName}` : `User ID ${user.userId}`);
-      message += `${index + 1}. ${name} has ${user.karma} karma\n`;
+    topKarmaUsers.forEach((userKarma, index) => {
+      // Acceder directamente a los campos mapeados por el servicio
+      const name = userKarma.userName
+        ? `@${userKarma.userName}`
+        : userKarma.firstName || `User ${userKarma.userId}`;
+      message += `${index + 1}. ${name} has ${userKarma.karma} karma\n`;
     });
 
     safeSendMessage(chatId, message);
   } catch (error) {
-    // El error ya se loguea en el servicio, aquí solo enviamos mensaje genérico
-    safeSendMessage(chatId, "Sorry, I couldn't retrieve the top karma users.");
+    // ... manejo error ...
   }
 };
 
@@ -253,12 +307,12 @@ const handleGetKarmaCommand = async (msg, match) => {
     }
 
     const message = `
-👤 User: ${input}
-✨ Karma: ${karma.karma || 0}
+👤 User: ${formatUserName(karmaDoc.user)} (${input})
+✨ Karma: ${karmaDoc.karma || 0} in this group
 
-♥ Given karma: ${karma.givenKarma || 0}.
-😠 Given hate: ${karma.givenHate || 0}.
-        `;
+♥ Given karma: ${karmaDoc.givenKarma || 0}.
+😠 Given hate: ${karmaDoc.givenHate || 0}.
+    `;
     safeSendMessage(chatId, message.trim(), {
       reply_to_message_id: msg.message_id,
     });
@@ -316,8 +370,19 @@ const handleGetHistoryCommand = async (msg, match) => {
 
   try {
     const karma = await findUserKarma(input, chatId);
+    const userDoc = karma?.user;
+    const groupDoc = karma?.group;
+    let karmaDoc = null;
 
-    if (!karma || !karma.history || karma.history.length === 0) {
+    if (userDoc && groupDoc) {
+      // Buscar Karma sin lean() si necesitas métodos de instancia, pero para leer historial lean() está bien
+      karmaDoc = await Karma.findOne({
+        user: userDoc._id,
+        group: groupDoc._id,
+      }).lean();
+    }
+
+    if (!karmaDoc || !karmaDoc.history || karmaDoc.history.length === 0) {
       safeSendMessage(
         chatId,
         `No karma history found for user "${input}" in this group.`,
@@ -326,7 +391,7 @@ const handleGetHistoryCommand = async (msg, match) => {
       return;
     }
 
-    const historyMessage = formatHistory(karma.history);
+    const historyMessage = formatHistory(karmaDoc.history);
     safeSendMessage(
       chatId,
       `📜 Karma history for ${input} (last 10 changes):\n\n${historyMessage}`,
@@ -355,18 +420,29 @@ const handleHistoryCommand = async (msg) => {
 
   try {
     // Necesitamos el historial, no usamos .lean()
-    const karma = await Karma.findOne({ userId, groupId: chatId });
-    const senderName = formatUserName(karma);
+    const userDoc = await User.findOne({ userId }).lean();
+    const groupDoc = await Group.findOne({ groupId: chatId }).lean();
+    let karmaDoc = null;
+    if (userDoc && groupDoc) {
+      // Buscar Karma sin lean() si necesitas métodos de instancia, pero para leer historial lean() está bien
+      karmaDoc = await Karma.findOne({
+        user: userDoc._id,
+        group: groupDoc._id,
+      }).lean();
+    }
 
-    if (!karma || !karma.history || karma.history.length === 0) {
+    if (!karmaDoc || !karmaDoc.history || karmaDoc.history.length === 0) {
+      const senderName = formatUserName(userDoc || msg.from);
+
       safeSendMessage(
         chatId,
         `${senderName}, you do not have any karma history in this group yet.`
       );
+
       return;
     }
 
-    const historyMessage = formatHistory(karma.history);
+    const historyMessage = formatHistory(karmaDoc.history);
     safeSendMessage(
       chatId,
       `📜 Your karma history (last 10 changes):\n\n${historyMessage}`
@@ -454,12 +530,11 @@ const handleSendCommand = async (msg, match) => {
       safeSendMessage(chatId, result, { reply_to_message_id: msg.message_id });
     } else {
       // Éxito
-      const senderName = formatUserName(result.respSender);
-      const receiverName = formatUserName(result.respReceiver);
+      const senderName = formatUserName(result.senderKarma.user);
+      const receiverName = formatUserName(result.receiverKarma.user);
       safeSendMessage(
         chatId,
-        `💸 ${senderName} has sent ${quantity} karma to ${receiverName}!\n\n${senderName} new karma: ${result.respSender.karma}\n${receiverName} new karma: ${result.respReceiver.karma}`
-        // { reply_to_message_id: msg.message_id } // Quizás no queremos responder al /send, sino enviar un mensaje nuevo
+        `💸 ${senderName} has sent ${quantity} karma to ${receiverName}!\n\n${senderName} new karma: ${result.senderKarma.karma}\n${receiverName} new karma: ${result.receiverKarma.karma}`
       );
     }
   } catch (error) {
@@ -496,9 +571,10 @@ const handleTopReceivedCommand = async (msg, daysBack, periodName) => {
 
     let message = `🌟 Top 10 users by karma received in the ${periodName}:\n\n`;
     topUsers.forEach((user, index) => {
-      const name =
-        user.firstName ||
-        (user.userName ? `@${user.userName}` : `User ID ${user.userId}`);
+      // Acceder directamente a los campos del resultado de la agregación
+      const name = user.userName
+        ? `@${user.userName}`
+        : user.firstName || `User ${user.userId}`;
       message += `${index + 1}. ${name} received ${
         user.totalKarmaReceived
       } karma\n`;

@@ -23,6 +23,7 @@ const initializeBot = () => {
 
   // Listener para mensajes generales (posiblemente +1/-1)
   bot.on("message", (msg) => {
+    // console.log(msg);
     if (msg.edit_date || msg.forward_date || !msg.text) return; // Ignorar editados, reenviados o sin texto
     // Solo llamar a handleKarmaMessage si NO es un comando para evitar doble procesamiento
     if (!msg.text.startsWith("/")) {

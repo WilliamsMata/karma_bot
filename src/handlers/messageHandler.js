@@ -10,6 +10,21 @@ const KARMA_COOLDOWN_MS = 60 * 1000; // 1 minuto
 const KARMA_REGEX = /(^|\s)(\+|-)1(\s|$)/; // Regex para +1 o -1
 
 /**
+ * Formatea el nombre de un usuario (username o first name).
+ * @param {object} user - Objeto usuario con `firstName` y `userName`.
+ * @returns {string} Nombre formateado.
+ */
+const formatUserName = (userOrKarmaDoc) => {
+  // Asume que userOrKarmaDoc puede ser el doc Karma poblado o directamente el doc User
+  const user = userOrKarmaDoc?.user ? userOrKarmaDoc.user : userOrKarmaDoc;
+  if (!user) return "Unknown User";
+  // Usa los campos del modelo User (userId, userName, firstName)
+  return user.userName
+    ? `@${user.userName}`
+    : user.firstName || `User ${user.userId || ""}`.trim();
+};
+
+/**
  * Maneja los mensajes que podrían ser para dar/quitar karma (+1 / -1).
  * @param {object} msg - El objeto de mensaje de Telegram.
  */
@@ -71,18 +86,19 @@ const handleKarmaMessage = async (msg) => {
   // Actualizar el karma usando el servicio
   try {
     const result = await updateKarma(msg, karmaValue);
-    if (result && result.respReceiver) {
+
+    if (result && result.receiverKarma) {
       // Actualizar el timestamp del cooldown para el emisor
       karmaCooldowns[sender.id] = now;
 
       // Enviar mensaje de confirmación
-      const receiverName =
-        result.respReceiver.firstName || result.respReceiver.userName || "User";
+      const receiverName = formatUserName(result.receiverKarma.user);
+
       bot
         .sendMessage(
           msg.chat.id,
-          `${receiverName} now has ${result.respReceiver.karma} karma.`,
-          { reply_to_message_id: msg.message_id } // Responder al mensaje +1/-1
+          `${receiverName} now has ${result.receiverKarma.karma} karma.`, // Usar karma del resultado
+          { reply_to_message_id: msg.message_id }
         )
         .catch((err) =>
           logger.error(
