@@ -68,23 +68,28 @@ const updateKarma = async (msg, incValue = 1) => {
  * Obtiene los N usuarios con más (o menos) karma en un grupo.
  * @param {number} groupId - El ID del grupo de Telegram.
  * @param {boolean} [ascending=false] - Si es true, ordena de menor a mayor karma (más odiados).
- * @param {number} [limit=10] - El número máximo de usuarios a retornar.
+ * @param {number} [limit=10] - El número máximo de usuarios a retornar. Si es 0 o menor, retorna todos.
  * @returns {Promise<object[]|null>} Un array de usuarios o null si hay error.
  */
 const getTopKarma = async (groupId, ascending = false, limit = 10) => {
   try {
     const sortOrder = ascending ? 1 : -1;
-    const topKarmaUsers = await Karma.find(
-      { groupId, karma: { $exists: true } }, // Asegura que el campo karma exista
-      "karma firstName userName userId" // Proyectar campos necesarios explícitamente
-    )
-      .sort({ karma: sortOrder })
-      .limit(limit)
-      .lean();
+    // Construir la query inicial
+    const query = Karma.find(
+      { groupId, karma: { $exists: true } },
+      "karma firstName userName userId history givenKarma givenHate createdAt updatedAt"
+    ).sort({ karma: sortOrder });
 
-    return topKarmaUsers;
+    // Aplicar el límite solo si es un número positivo
+    if (limit && typeof limit === "number" && limit > 0) {
+      query.limit(limit);
+    }
+
+    const karmaUsers = await query.lean(); // Usar lean para mejor performance en lectura
+
+    return karmaUsers;
   } catch (error) {
-    logger.error(`Error fetching top karma users for group ${groupId}:`, error);
+    logger.error(`Error fetching karma users for group ${groupId}:`, error);
     return null;
   }
 };

@@ -88,6 +88,7 @@ Want to run your own instance of KarmaBot? Follow these steps:
     # .env
     TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
     MONGODB_CNN=YOUR_MONGODB_CONNECTION_STRING_HERE
+    PORT=3000
     ```
 
     _Replace the placeholder values with your actual bot token and MongoDB connection string._
