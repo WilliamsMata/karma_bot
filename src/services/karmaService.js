@@ -1,4 +1,3 @@
-// src/services/karmaService.js
 const User = require("../models/User");
 const Group = require("../models/Group");
 const Karma = require("../models/Karma"); // Nuevo modelo Karma
@@ -119,7 +118,7 @@ const getTopKarma = async (groupId, ascending = false, limit = 10) => {
       .sort({ karma: sortOrder })
       .populate("user", "firstName userName userId") // Poblar datos del usuario necesarios
       // No poblamos 'group' aquí, ya lo conocemos
-      .select("karma user"); // Seleccionar solo karma y el usuario poblado
+      .select("karma user givenKarma givenHate"); // Seleccionar solo karma y el usuario poblado
 
     if (limit && typeof limit === "number" && limit > 0) {
       query.limit(limit);
@@ -134,6 +133,8 @@ const getTopKarma = async (groupId, ascending = false, limit = 10) => {
       userId: k.user?.userId, // Acceder a través del objeto 'user' poblado
       firstName: k.user?.firstName,
       userName: k.user?.userName,
+      givenKarma: k.givenKarma,
+      givenHate: k.givenHate,
       _id: k._id, // El _id del documento Karma
     }));
     // return topKarmaUsers; // Alternativa si adaptas los handlers

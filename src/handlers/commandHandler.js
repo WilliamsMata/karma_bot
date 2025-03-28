@@ -174,15 +174,14 @@ const handleTopCommand = async (msg) => {
     let message = "🏆 Top 10 Karma Users:\n\n";
     topKarmaUsers.forEach((userKarma, index) => {
       // Acceder directamente a los campos mapeados por el servicio
-      const name = userKarma.userName
-        ? `@${userKarma.userName}`
-        : userKarma.firstName || `User ${userKarma.userId}`;
+      const name = userKarma.firstName || `User ${userKarma.userId}`;
       message += `${index + 1}. ${name} has ${userKarma.karma} karma\n`;
     });
 
     safeSendMessage(chatId, message);
   } catch (error) {
     // ... manejo error ...
+    logger.error(`Error handling /top command for group ${chatId}:`, error);
   }
 };
 
@@ -307,17 +306,16 @@ const handleGetKarmaCommand = async (msg, match) => {
     }
 
     const message = `
-👤 User: ${formatUserName(karmaDoc.user)} (${input})
-✨ Karma: ${karmaDoc.karma || 0} in this group
+👤 User: ${formatUserName(karma.user)} (${input})
+✨ Karma: ${karma.karma || 0} in this group
 
-♥ Given karma: ${karmaDoc.givenKarma || 0}.
-😠 Given hate: ${karmaDoc.givenHate || 0}.
+♥ Given karma: ${karma.givenKarma || 0}.
+😠 Given hate: ${karma.givenHate || 0}.
     `;
     safeSendMessage(chatId, message.trim(), {
       reply_to_message_id: msg.message_id,
     });
   } catch (error) {
-    // El error ya fue logueado en findUserKarma si ocurrió allí
     safeSendMessage(
       chatId,
       `Sorry, I couldn't retrieve karma for "${input}".`,

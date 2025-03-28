@@ -1,4 +1,3 @@
-// scripts/migrateData.js
 require("dotenv").config({ path: "../.env" }); // Ajusta la ruta a tu .env si es necesario
 
 const mongoose = require("mongoose");
