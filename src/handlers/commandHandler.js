@@ -315,10 +315,7 @@ const handleGetHistoryCommand = async (msg, match) => {
   }
 
   try {
-    // Necesitamos el historial, así que no usamos .lean() aquí o seleccionamos el campo 'history'
-    const karma = await Karma.findOne(
-      findUserKarma.query // Reutilizar la lógica de búsqueda de findUserKarma (adaptándola)
-    );
+    const karma = await findUserKarma(input, chatId);
 
     if (!karma || !karma.history || karma.history.length === 0) {
       safeSendMessage(
