@@ -1,4 +1,4 @@
-const bot = require("./botInstance"); // Importar la instancia del bot
+const bot = require("./botInstance");
 const { handleKarmaMessage } = require("../handlers/messageHandler");
 const {
   handleMeCommand,

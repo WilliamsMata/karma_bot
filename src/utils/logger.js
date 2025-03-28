@@ -1,4 +1,3 @@
-// Un logger muy básico. Considera usar librerías como Winston o Pino para producción.
 const logger = {
   info: (...args) => {
     console.log(`[INFO] ${new Date().toISOString()}:`, ...args);
