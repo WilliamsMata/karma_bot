@@ -1,43 +1,149 @@
-# Karma Bot
+# ✨ KarmaBot for Telegram ✨
 
-This is a simple bot for tracking karma in a group chat. The bot allows users to give each other karma points by sending messages with +1 or -1 as a response to a message. The bot also provides commands to check a user's current karma score and to see a leaderboard of the top users with the most karma.
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](package.json)
+[![Node.js](https://img.shields.io/badge/Node.js-18.x+-green.svg)](https://nodejs.org/)
+[![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot%20API-Node-blue?logo=telegram)](https://github.com/yagop/node-telegram-bot-api)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-green?logo=mongodb)](https://mongoosejs.com/)
 
-https://t.me/karma_tg_bot
+A sophisticated Telegram bot designed to track user reputation (karma) within group chats seamlessly. Built with Node.js, Mongoose, and the `node-telegram-bot-api`.
 
-# Installation
+---
 
-To use the bot, you will need to have Node.js installed on your system and a mongo database. Once you have those installed, follow these steps:
+<!-- Optional: Add a project logo or banner here -->
+<!-- <p align="center">
+  <img src="link/to/your/logo.png" alt="KarmaBot Logo" width="200"/>
+</p> -->
 
-1. Clone this repository to your local machine.
-2. Run npm install to install the required dependencies.
-3. Create a .env file in the root directory of the project with the following content:
+**KarmaBot** allows group members to easily give or take karma points from each other, fostering interaction and providing insights into user contributions and popularity within the community. Features include leaderboards, individual karma tracking, transfer capabilities, and historical data.
 
-```
-TELEGRAM_BOT_TOKEN=<your_bot_token_here>
-MONGODB_CNN=<your_mongodb_uri_here>
-```
+---
 
-Replace <your_bot_token_here> with the token for your Telegram bot, and <your_mongodb_uri_here> with the URI for your MongoDB instance.
+## 🚀 Features
 
-4. Run npm start to start the bot.
+- 👍 **Give Karma:** Reply `+1` to a message to award a karma point.
+- 👎 **Give Hate:** Reply `-1` to a message to deduct a karma point.
+- ⏱️ **Cooldown:** Users must wait 1 minute between giving karma/hate.
+- 👤 **My Status (`/me`):** Check your own karma score, total karma given, and total hate given.
+- 🏆 **Top Users (`/top`):** View the top 10 users with the highest karma scores in the group.
+- 😠 **Most Hated (`/hate`):** See the top 10 users with the lowest karma scores.
+- ❤️ **Top Givers (`/mostgivers`):** Leaderboard of users who have given the most positive karma and the most negative karma (hate).
+- 🔍 **Check Others (`/getkarma <user>`):** Look up the karma details of a specific user by name or @username.
+- 📜 **Karma History (`/history`):** View your own last 10 karma changes.
+- 🕵️ **Others' History (`/gethistory <user>`):** View the last 10 karma changes for a specific user.
+- 💸 **Transfer Karma (`/send <amount>`):** Reply to a user to send them a specific amount of your own karma points.
+- 📅 **Periodic Leaders:**
+  - `/today`: Top users by karma received in the last 24 hours.
+  - `/month`: Top users by karma received in the last 30 days.
+  - `/year`: Top users by karma received in the last 365 days.
+- ❓ **Help (`/help`):** Displays a comprehensive list of available commands.
+- 💾 **Persistent Storage:** Karma data is stored reliably using MongoDB.
+- ⚙️ **Modular Codebase:** Cleanly structured for maintainability and potential extension.
 
-# Usage
+---
 
-The following commands are available:
+## 🛠️ How to Use (For Group Members)
 
-- +1 or -1: Respond to a message with +1 to increase the karma of the person who sent the message, or -1 to decrease it.
-- /me: Send this command to the group to get your current karma score.
-- /top: Send this command to the group to get a leaderboard of the top 10 users with the most karma in the group.
-- /hate: Send this command to the group to get a leaderboard of the top 10 hated users in the group.
-- /mostgivers: Send this command to the group to get a leaderboard of the top 10 users who have given the most karma and hate.
-- /history: Allows users in a Telegram group to view their own karma history in the group.
-- /getkarma <name or username>: Allows users in a Telegram group to view the karma of a specific user in the group.
-- /gethistory <name or username>: Allows users in a Telegram group to view the karma history of a specific user in the group.
-- /send <amount>: Allows users in a Telegram group to transfer karma to a specific user in the group.
-- /help: Send this command to get info about the bot.
-- /today: Allows users in a Telegram group to view the top 10 users that received karma today.
-- /month: Allows users in a Telegram group to view the top 10 users that received karma this month.
-- /year: Allows users in a Telegram group to view the top 10 users that received karma this year.
+1.  **Add the Bot:** Invite KarmaBot to your Telegram group.
+2.  **Give/Take Karma:** Simply **reply** to any user's message with `+1` to give karma or `-1` to give hate.
+3.  **Use Commands:** Type commands directly into the chat:
+    - `/me` - To see your score.
+    - `/top` - To see the leaderboard.
+    - `/send <amount>` - **Reply** to a user's message with this command (e.g., `/send 5`).
+    - `/help` - For the full command list.
+    - ...and all other commands listed in the Features section!
+
+---
+
+## 🔧 Installation & Setup (For Developers)
+
+Want to run your own instance of KarmaBot? Follow these steps:
+
+1.  **Prerequisites:**
+
+    - Node.js (v18.x or higher recommended)
+    - npm or yarn
+    - A MongoDB instance (local or cloud like MongoDB Atlas)
+    - A Telegram Bot Token (Get one from @BotFather on Telegram)
+
+2.  **Clone the Repository:**
+
+    ```bash
+    git clone https://github.com/WilliamsMata/karma_bot
+    cd karmabot
+    ```
+
+3.  **Install Dependencies:**
+
+    ```bash
+    npm install
+    # or
+    yarn install
+    ```
+
+4.  **Configure Environment Variables:**
+    Create a `.env` file in the root directory of the project and add the following variables:
+
+    ```dotenv
+    # .env
+    TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
+    MONGODB_CNN=YOUR_MONGODB_CONNECTION_STRING_HERE
+    ```
+
+    _Replace the placeholder values with your actual bot token and MongoDB connection string._
+
+5.  **Run the Bot:**
+
+    - **Development Mode (with nodemon for auto-reloads):**
+      ```bash
+      npm run dev
+      ```
+    - **Production Mode:**
+      ```bash
+      npm start
+      ```
+
+6.  **Database Indexes:**
+    Upon the first run, Mongoose will attempt to create necessary indexes in your MongoDB collection based on the schema definitions. Ensure your MongoDB user has permissions to create indexes. If you added the `unique` index on `userId` and `groupId`, make sure your existing data doesn't violate this constraint _before_ starting the bot with the updated schema.
+
+---
+
+## 💻 Technology Stack
+
+- **Backend:** Node.js
+- **Telegram API:** `node-telegram-bot-api`
+- **Database:** MongoDB with Mongoose ODM
+- **Environment:** `dotenv`
+
+---
+
+## 🙌 Contributing
+
+Contributions are welcome! If you'd like to improve KarmaBot, please follow these steps:
+
+1.  **Fork** the repository.
+2.  Create a new **branch** (`git checkout -b feature/your-feature-name`).
+3.  Make your changes and **commit** them (`git commit -m 'Add some feature'`).
+4.  **Push** to the branch (`git push origin feature/your-feature-name`).
+5.  Open a **Pull Request**.
+
+Please ensure your code adheres to the existing style and that any new functionality is well-documented. Feel free to open an issue to discuss potential changes beforehand.
+
+---
+
+## 📜 License
+
+This project is licensed under the ISC License - see the [LICENSE](https://github.com/WilliamsMata/karma_bot/blob/main/LICENSE) file for details (or state "ISC License" if you don't have a separate file yet).
+
+---
+
+## 👤 Author
+
+- **Williams Mata** - _Initial work_ - [GitHub](https://github.com/WilliamsMata)
+
+---
+
+Enjoy tracking karma in your Telegram groups! 🎉
 
 # Acknowledgments
 
