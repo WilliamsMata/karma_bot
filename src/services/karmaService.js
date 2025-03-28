@@ -50,16 +50,14 @@ const updateKarma = async (msg, incValue = 1) => {
     const receiverData = msg.reply_to_message.from;
     const chatData = msg.chat;
 
-    // 1. Encontrar/Crear Grupo (y actualizar nombre oportunistamente)
-    const groupDoc = await findOrCreateGroup(chatData.id, chatData.title);
-
-    // 2. Encontrar/Crear Usuarios
-    const [senderUserDoc, receiverUserDoc] = await Promise.all([
+    // 1. Encontrar/Crear Grupo y Usuarios
+    const [groupDoc, senderUserDoc, receiverUserDoc] = await Promise.all([
+      findOrCreateGroup(chatData.id, chatData.title),
       findOrCreateUser(senderData),
       findOrCreateUser(receiverData),
     ]);
 
-    // 3. Actualizar Karma (Emisor y Receptor)
+    // 2. Actualizar Karma (Emisor y Receptor)
     const incGivenKarmaOrHate =
       incValue === 1 ? { givenKarma: 1 } : { givenHate: 1 };
 
@@ -219,12 +217,10 @@ const transferKarma = async (msg, quantity) => {
 
   try {
     // 1. Encontrar/Crear Grupo (y actualizar nombre) - DENTRO de la transacción
-    const groupDoc = await findOrCreateGroup(groupId, chatData.title); // No usar .lean() si se modifica en transacción
-
-    // 2. Encontrar/Crear Usuarios - DENTRO de la transacción
-    const [senderUserDoc, receiverUserDoc] = await Promise.all([
-      findOrCreateUser(senderData), // No usar .lean()
-      findOrCreateUser(receiverData), // No usar .lean()
+    const [groupDoc, senderUserDoc, receiverUserDoc] = await Promise.all([
+      findOrCreateGroup(groupId, chatData.title),
+      findOrCreateUser(senderData),
+      findOrCreateUser(receiverData),
     ]);
 
     // 3. Encontrar los documentos Karma de ambos - DENTRO de la transacción
