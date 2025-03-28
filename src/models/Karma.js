@@ -28,7 +28,6 @@ const KarmaSchema = Schema(
     ],
     givenKarma: { type: Number, default: 0 }, // Karma positivo dado *por este usuario en este grupo*
     givenHate: { type: Number, default: 0 }, // Karma negativo dado *por este usuario en este grupo*
-    // Ya no necesitamos userId, groupId, userName, firstName, lastName aquí
   },
   {
     timestamps: true, // createdAt, updatedAt para esta relación específica
