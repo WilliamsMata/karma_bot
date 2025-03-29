@@ -43,6 +43,22 @@ const getUsersByGroupId = async (req, res) => {
   }
 };
 
+const getTotal = async (req, res) => {
+  try {
+    const total = await karmaService.getTotalUsersAndGroups();
+    if (total === null) {
+      return res
+        .status(500)
+        .json({ message: "Error retrieving total users and groups." });
+    }
+    res.status(200).json(total);
+  } catch (error) {
+    logger.error("API Error fetching total users and groups:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   getUsersByGroupId,
+  getTotal,
 };

@@ -380,6 +380,23 @@ const getDistinctGroupIds = async () => {
   }
 };
 
+/**
+ * Obtiene el número de usuarios y grupos en la base de datos.
+ * @returns {Promise<{users: number, groups: number}|null>} Objeto con los números o null si hubo error.
+ */
+const getTotalUsersAndGroups = async () => {
+  try {
+    const [users, groups] = await Promise.all([
+      User.countDocuments(),
+      Group.countDocuments(),
+    ]);
+    return { users, groups };
+  } catch (error) {
+    logger.error("Error fetching total users and groups:", error);
+    return null;
+  }
+};
+
 module.exports = {
   updateKarma,
   getTopKarma,
@@ -387,4 +404,5 @@ module.exports = {
   transferKarma,
   getTopUsersByKarmaReceived,
   getDistinctGroupIds,
+  getTotalUsersAndGroups,
 };
