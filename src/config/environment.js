@@ -3,7 +3,7 @@ const logger = require("../utils/logger");
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const mongoUri = process.env.MONGODB_CNN;
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 let hasError = false;
 
