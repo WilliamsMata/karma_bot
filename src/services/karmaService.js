@@ -397,6 +397,56 @@ const getTotalUsersAndGroups = async () => {
   }
 };
 
+/**
+ * Obtiene la lista de grupos donde un usuario específico tiene registros de karma.
+ * @param {number} userId - El ID numérico del usuario de Telegram.
+ * @returns {Promise<Array<{groupId: number, groupName: string}>|null>} Lista de objetos de grupo o null si hay error.
+ */
+const getGroupsForUser = async (userId) => {
+  try {
+    // 1. Buscar el documento del Usuario por su userId de Telegram
+    const userDoc = await User.findOne({ userId }).lean();
+    if (!userDoc) {
+      logger.info(
+        `getGroupsForUser: User with userId ${userId} not found in the database.`
+      );
+      return []; // Usuario no existe en nuestra DB, por lo tanto no está en grupos registrados
+    }
+
+    // 2. Buscar todos los registros de Karma asociados a ese usuario (_id)
+    // Seleccionamos solo el campo 'group' para obtener las referencias ObjectId de los grupos
+    const karmaRecords = await Karma.find(
+      { user: userDoc._id },
+      "group"
+    ).lean();
+
+    if (!karmaRecords || karmaRecords.length === 0) {
+      logger.info(
+        `getGroupsForUser: No karma records found for user ${userId} (ObjectId: ${userDoc._id}).`
+      );
+      return []; // Usuario existe pero no tiene registros de karma en ningún grupo
+    }
+
+    // 3. Extraer los _id únicos de los grupos de los registros de karma
+    // Usamos Set para garantizar unicidad automáticamente
+    const groupObjectIds = [
+      ...new Set(karmaRecords.map((record) => record.group)),
+    ];
+
+    // 4. Buscar los documentos de Grupo correspondientes a esos _id
+    // Seleccionamos solo groupId y groupName
+    const groups = await Group.find(
+      { _id: { $in: groupObjectIds } },
+      "groupId groupName" // Proyectar solo los campos necesarios
+    ).lean(); // Obtener objetos planos
+
+    return groups; // Devolver el array de documentos de grupo encontrados
+  } catch (error) {
+    logger.error(`Error fetching groups for user ${userId}:`, error);
+    return null; // Indicar que ocurrió un error
+  }
+};
+
 module.exports = {
   updateKarma,
   getTopKarma,
@@ -405,4 +455,5 @@ module.exports = {
   getTopUsersByKarmaReceived,
   getDistinctGroupIds,
   getTotalUsersAndGroups,
+  getGroupsForUser,
 };
