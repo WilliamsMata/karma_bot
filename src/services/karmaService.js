@@ -436,7 +436,7 @@ const getGroupsForUser = async (userId) => {
     // 4. Buscar los documentos de Grupo correspondientes a esos _id
     // Seleccionamos solo groupId y groupName
     const groups = await Group.find(
-      { _id: { $in: groupObjectIds } },
+      { _id: { $in: groupObjectIds }, groupName: { $exists: true, $ne: null } },
       "groupId groupName" // Proyectar solo los campos necesarios
     ).lean(); // Obtener objetos planos
 
