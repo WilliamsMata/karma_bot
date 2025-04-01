@@ -447,6 +447,23 @@ const getGroupsForUser = async (userId) => {
   }
 };
 
+const getGroupInfo = async (groupId) => {
+  try {
+    // 1. Buscar el documento del Grupo
+    const groupDoc = await Group.findOne({ groupId }).lean();
+    if (!groupDoc) {
+      logger.warn(`getGroupInfo: Group not found with ID ${groupId}`);
+      return null; // Devolver null si el grupo no existe en la DB
+    }
+
+    // 2. Devolver el objeto con los datos
+    return groupDoc;
+  } catch (error) {
+    logger.error(`Error fetching group info for group ${groupId}:`, error);
+    return null;
+  }
+};
+
 module.exports = {
   updateKarma,
   getTopKarma,
@@ -456,4 +473,5 @@ module.exports = {
   getDistinctGroupIds,
   getTotalUsersAndGroups,
   getGroupsForUser,
+  getGroupInfo,
 };
