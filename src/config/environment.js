@@ -36,5 +36,6 @@ if (hasError) {
 module.exports = {
   botToken,
   mongoUri,
+  botUsername,
   port,
 };
