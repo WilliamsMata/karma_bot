@@ -1,6 +1,7 @@
 const { updateKarma } = require("../services/karmaService");
 const bot = require("../bot/botInstance"); // Importar la instancia del bot
 const logger = require("../utils/logger");
+const { getInlineKeyboard } = require("../utils/inlineKeyboard");
 
 // Estado para el cooldown (mejor encapsulado aquí)
 const karmaCooldowns = {}; // { userId: timestamp }
@@ -98,7 +99,12 @@ const handleKarmaMessage = async (msg) => {
         .sendMessage(
           msg.chat.id,
           `${receiverName} now has ${result.receiverKarma.karma} karma.`, // Usar karma del resultado
-          { reply_to_message_id: msg.message_id }
+          {
+            reply_to_message_id: msg.message_id,
+            reply_markup: {
+              inline_keyboard: getInlineKeyboard(msg.chat.id),
+            },
+          }
         )
         .catch((err) =>
           logger.error(

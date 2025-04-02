@@ -8,6 +8,7 @@ const {
   getTopUsersByKarmaReceived,
   getDistinctGroupIds,
 } = require("../services/karmaService");
+const { getInlineKeyboard } = require("../utils/inlineKeyboard");
 const bot = require("../bot/botInstance");
 const logger = require("../utils/logger");
 
@@ -131,7 +132,8 @@ const handleMeCommand = async (msg) => {
       // Si no hay registro Karma para este usuario en este grupo
       safeSendMessage(
         chatId,
-        `🙋 Hi ${senderName}, your karma is 0 in this group.\n\n♥ Given karma: 0.\n😠 Given hate: 0.`
+        `🙋 Hi ${senderName}, your karma is 0 in this group.\n\n♥ Given karma: 0.\n😠 Given hate: 0.`,
+        { reply_markup: { inline_keyboard: getInlineKeyboard(chatId) } }
       );
       return;
     }
@@ -145,7 +147,11 @@ const handleMeCommand = async (msg) => {
 ♥ Given karma: ${karmaDoc.givenKarma || 0}.
 😠 Given hate: ${karmaDoc.givenHate || 0}.
     `;
-    safeSendMessage(chatId, message.trim());
+    safeSendMessage(chatId, message.trim(), {
+      reply_markup: {
+        inline_keyboard: getInlineKeyboard(chatId),
+      },
+    });
   } catch (error) {
     // ... manejo de error ...
     logger.error(
@@ -178,7 +184,11 @@ const handleTopCommand = async (msg) => {
       message += `${index + 1}. ${name} has ${userKarma.karma} karma\n`;
     });
 
-    safeSendMessage(chatId, message);
+    safeSendMessage(chatId, message, {
+      reply_markup: {
+        inline_keyboard: getInlineKeyboard(chatId),
+      },
+    });
   } catch (error) {
     // ... manejo error ...
     logger.error(`Error handling /top command for group ${chatId}:`, error);
@@ -215,7 +225,11 @@ const handleHateCommand = async (msg) => {
       message += `${index + 1}. ${name} has ${user.karma} karma\n`;
     });
 
-    safeSendMessage(chatId, message);
+    safeSendMessage(chatId, message, {
+      reply_markup: {
+        inline_keyboard: getInlineKeyboard(chatId),
+      },
+    });
   } catch (error) {
     safeSendMessage(chatId, "Sorry, I couldn't retrieve the most hated users.");
   }
@@ -269,7 +283,11 @@ const handleMostGiversCommand = async (msg) => {
       message += "😠 No users have given negative karma (hate) yet.\n";
     }
 
-    safeSendMessage(chatId, message.trim());
+    safeSendMessage(chatId, message.trim(), {
+      reply_markup: {
+        inline_keyboard: getInlineKeyboard(chatId),
+      },
+    });
   } catch (error) {
     safeSendMessage(chatId, "Sorry, I couldn't retrieve the top karma givers.");
   }
@@ -314,6 +332,9 @@ const handleGetKarmaCommand = async (msg, match) => {
     `;
     safeSendMessage(chatId, message.trim(), {
       reply_to_message_id: msg.message_id,
+      reply_markup: {
+        inline_keyboard: getInlineKeyboard(chatId),
+      },
     });
   } catch (error) {
     safeSendMessage(
@@ -393,7 +414,12 @@ const handleGetHistoryCommand = async (msg, match) => {
     safeSendMessage(
       chatId,
       `📜 Karma history for ${input} (last 10 changes):\n\n${historyMessage}`,
-      { reply_to_message_id: msg.message_id }
+      {
+        reply_to_message_id: msg.message_id,
+        reply_markup: {
+          inline_keyboard: getInlineKeyboard(chatId),
+        },
+      }
     );
   } catch (error) {
     logger.error(
@@ -443,7 +469,12 @@ const handleHistoryCommand = async (msg) => {
     const historyMessage = formatHistory(karmaDoc.history);
     safeSendMessage(
       chatId,
-      `📜 Your karma history (last 10 changes):\n\n${historyMessage}`
+      `📜 Your karma history (last 10 changes):\n\n${historyMessage}`,
+      {
+        reply_markup: {
+          inline_keyboard: getInlineKeyboard(chatId),
+        },
+      }
     );
   } catch (error) {
     logger.error(
@@ -532,7 +563,12 @@ const handleSendCommand = async (msg, match) => {
       const receiverName = formatUserName(result.receiverKarma.user);
       safeSendMessage(
         chatId,
-        `💸 ${senderName} has sent ${quantity} karma to ${receiverName}!\n\n${senderName} new karma: ${result.senderKarma.karma}\n${receiverName} new karma: ${result.receiverKarma.karma}`
+        `💸 ${senderName} has sent ${quantity} karma to ${receiverName}!\n\n${senderName} new karma: ${result.senderKarma.karma}\n${receiverName} new karma: ${result.receiverKarma.karma}`,
+        {
+          reply_markup: {
+            inline_keyboard: getInlineKeyboard(chatId),
+          },
+        }
       );
     }
   } catch (error) {
@@ -578,7 +614,11 @@ const handleTopReceivedCommand = async (msg, daysBack, periodName) => {
       } karma\n`;
     });
 
-    safeSendMessage(chatId, message);
+    safeSendMessage(chatId, message, {
+      reply_markup: {
+        inline_keyboard: getInlineKeyboard(chatId),
+      },
+    });
   } catch (error) {
     // Error ya logueado en el servicio
     safeSendMessage(
