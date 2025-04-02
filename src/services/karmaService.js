@@ -440,7 +440,12 @@ const getGroupsForUser = async (userId) => {
       "groupId groupName" // Proyectar solo los campos necesarios
     ).lean(); // Obtener objetos planos
 
-    return groups; // Devolver el array de documentos de grupo encontrados
+    // 5. Filtrar solo los grupos sobre los chats privados
+    const filteredGroups = groups.filter(
+      (g) => g.groupId.toString().length > 13
+    );
+
+    return filteredGroups; // Devolver el array de documentos de grupo encontrados
   } catch (error) {
     logger.error(`Error fetching groups for user ${userId}:`, error);
     return null; // Indicar que ocurrió un error

@@ -27,16 +27,6 @@ const getUserGroups = async (req, res) => {
         .json({ message: "Error retrieving groups for the user." });
     }
 
-    if (groups.length === 0) {
-      // El usuario no fue encontrado o no tiene registros en ningún grupo
-      // Devolver 404 es apropiado aquí
-      return res
-        .status(404)
-        .json({
-          message: `User with ID ${userId} not found or has no karma records in any group.`,
-        });
-    }
-
     // Enviar la respuesta exitosa
     // Mapeamos para quitar el _id si no se quiere exponer en la API
     const responseGroups = groups.map(({ _id, ...rest }) => rest);
