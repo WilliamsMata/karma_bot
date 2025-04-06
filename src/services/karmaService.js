@@ -1,6 +1,7 @@
+const { mongoose } = require("../config/database");
 const User = require("../models/User");
 const Group = require("../models/Group");
-const Karma = require("../models/Karma"); // Nuevo modelo Karma
+const Karma = require("../models/Karma");
 const logger = require("../utils/logger");
 
 // --- Helper para encontrar/crear Grupo y actualizar nombre ---

@@ -20,5 +20,6 @@ const dbConnection = async () => {
 };
 
 module.exports = {
+  mongoose,
   dbConnection,
 };
