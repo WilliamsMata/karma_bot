@@ -32,6 +32,7 @@ export class KarmaRepository extends AbstractRepository<Karma> {
       .find(filterQuery)
       .sort(sortQuery)
       .limit(limit)
+      .select('-history -__v')
       .populate<{ user: User }>('user', 'userId firstName lastName userName')
       .lean();
   }

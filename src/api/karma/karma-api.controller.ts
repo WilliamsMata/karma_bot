@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { KarmaService } from '../../karma/karma.service';
 import { GroupsService } from '../../groups/groups.service';
+import { GroupUserKarmaDto } from 'src/karma/dto/group-user-karma.dto';
 
 @Controller('karma')
 export class KarmaApiController {
@@ -22,7 +23,7 @@ export class KarmaApiController {
 
   @Get('group/:groupId')
   async getUsersByGroupId(@Param('groupId', ParseIntPipe) groupId: number) {
-    const [groupInfo, users] = await Promise.all([
+    const [groupInfo, usersFromService] = await Promise.all([
       this.groupsService.getGroupInfo(groupId),
       this.karmaService.getTopKarma(groupId, false, 0),
     ]);
@@ -30,6 +31,19 @@ export class KarmaApiController {
     if (!groupInfo) {
       throw new NotFoundException(`Group with ID ${groupId} not found.`);
     }
+
+    const users: GroupUserKarmaDto[] = usersFromService.map((karmaDoc) => {
+      return {
+        _id: karmaDoc._id.toString(),
+        karma: karmaDoc.karma,
+        givenKarma: karmaDoc.givenKarma,
+        givenHate: karmaDoc.givenHate,
+        userId: karmaDoc.user.userId,
+        firstName: karmaDoc.user.firstName,
+        lastName: karmaDoc.user.lastName,
+        userName: karmaDoc.user.userName,
+      };
+    });
 
     return { groupInfo, users };
   }
