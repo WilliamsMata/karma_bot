@@ -11,6 +11,20 @@ interface ITelegramChat {
 export class GroupsService {
   constructor(private readonly groupsRepository: GroupsRepository) {}
 
+  public async findPublicGroupsByIds(groupIds: any[]): Promise<Group[]> {
+    const groupsFromDb = await this.groupsRepository.find({
+      _id: { $in: groupIds },
+      groupName: { $exists: true, $ne: null },
+    });
+
+    // Filter out groups with invalid IDs (less than 13 characters)
+    const filteredGroups = groupsFromDb.filter(
+      (g) => g.groupId.toString().length >= 13,
+    );
+
+    return filteredGroups;
+  }
+
   async findOrCreate(chatData: ITelegramChat): Promise<Group> {
     const group = await this.groupsRepository.upsert(
       { groupId: chatData.id },

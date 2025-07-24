@@ -285,6 +285,6 @@ export class KarmaService {
 
     const groupIds = [...new Set(karmaRecords.map((r) => r.group))];
 
-    return this.groupsService.findByIds(groupIds);
+    return this.groupsService.findPublicGroupsByIds(groupIds);
   }
 }

@@ -32,7 +32,7 @@ export class KarmaRepository extends AbstractRepository<Karma> {
       .find(filterQuery)
       .sort(sortQuery)
       .limit(limit)
-      .populate<{ user: User }>('user', 'userId firstName userName')
+      .populate<{ user: User }>('user', 'userId firstName lastName userName')
       .lean();
   }
 
