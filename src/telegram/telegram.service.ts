@@ -32,10 +32,6 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
   private readonly logger = new Logger(TelegramService.name);
   private bot: Telegraf<Context<Update>>;
 
-  /**
-   * Un mapa para registrar y acceder fácilmente a todos los manejadores de comandos.
-   * La clave es el nombre del comando (ej. "me"), el valor es la instancia del handler.
-   */
   private readonly commandHandlers = new Map<string, ICommandHandler>();
 
   constructor(
@@ -82,14 +78,8 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
     this.logger.log('Telegram Bot started successfully.');
   }
 
-  /**
-   * Registra los listeners de Telegraf para manejar mensajes y comandos.
-   * Se utiliza un enfoque de middleware para separar la lógica.
-   */
   private registerListeners() {
-    // Listener #1: Maneja los mensajes de texto que NO son comandos (lógica de +1/-1).
     this.bot.on(message('text'), async (ctx, next) => {
-      // Si el mensaje es un comando, lo ignoramos y pasamos al siguiente listener.
       if (ctx.message.text.startsWith('/')) {
         return next();
       }
@@ -167,7 +157,6 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
       }
     });
 
-    // Listener #2: Maneja todos los mensajes que son comandos.
     this.bot.on(message('text'), async (ctx) => {
       if (!ctx.message.text.startsWith('/')) return;
 
@@ -184,20 +173,12 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
     });
   }
 
-  /**
-   * Método de ayuda para añadir un handler al mapa de comandos.
-   * @param handler La instancia del manejador de comandos.
-   */
   private registerCommand(handler: ICommandHandler) {
     const key = handler.command.toString();
     this.commandHandlers.set(key, handler);
     this.logger.log(`Command registered: ${key}`);
   }
 
-  /**
-   * Se ejecuta cuando la aplicación se está cerrando.
-   * Detiene el bot de forma segura.
-   */
   onApplicationShutdown(signal: string) {
     if (this.bot) {
       this.bot.stop(signal);

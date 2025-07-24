@@ -23,7 +23,6 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     super(karmaModel, connection);
   }
 
-  // Método para contar documentos con un filtro opcional
   async findWithPopulatedUser(
     filterQuery: FilterQuery<Karma>,
     sortQuery: { [key: string]: 1 | -1 },
@@ -41,7 +40,6 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     return this.model.aggregate<T>(pipeline);
   }
 
-  // Método público que encapsula una búsqueda con sesión de transacción
   async findOneWithSession(
     filterQuery: FilterQuery<Karma>,
     session: ClientSession,
@@ -49,7 +47,6 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     return this.model.findOne(filterQuery).session(session);
   }
 
-  // Método público que encapsula una actualización con sesión de transacción
   async findOneAndUpdateWithSession(
     filterQuery: FilterQuery<Karma>,
     updateQuery: UpdateQuery<Karma>,

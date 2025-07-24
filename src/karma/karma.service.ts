@@ -13,7 +13,6 @@ import { Group } from '../groups/schemas/group.schema';
 import { Karma } from './schemas/karma.schema';
 import { TopReceivedKarmaDto } from './dto/top-received-karma.dto';
 
-// Tipos de datos de Telegram (sin cambios)
 interface ITelegramUser {
   id: number;
   first_name: string;
@@ -25,27 +24,18 @@ interface ITelegramChat {
   title?: string;
 }
 
-// Tipo para un documento Karma con el usuario poblado
 type PopulatedKarma = Karma & { user: User };
 
 @Injectable()
 export class KarmaService {
   private readonly logger = new Logger(KarmaService.name);
 
-  /**
-   * El constructor ahora depende de otros SERVICIOS, no de repositorios
-   * de otros módulos. Esto desacopla la lógica y sigue los principios SOLID.
-   */
   constructor(
     private readonly karmaRepository: KarmaRepository,
     private readonly usersService: UsersService,
     private readonly groupsService: GroupsService,
   ) {}
 
-  /**
-   * Actualiza el karma de un usuario y registra quién lo dio.
-   * La responsabilidad de encontrar/crear usuarios y grupos se delega a sus servicios respectivos.
-   */
   public async updateKarma(
     senderData: ITelegramUser,
     receiverData: ITelegramUser,
@@ -82,10 +72,6 @@ export class KarmaService {
     return { receiverName, newKarma: receiverKarma.karma };
   }
 
-  /**
-   * Transfiere karma de un usuario a otro usando una transacción.
-   * La lógica de negocio ahora delega la creación/búsqueda de entidades.
-   */
   public async transferKarma(
     senderData: ITelegramUser,
     receiverData: ITelegramUser,
@@ -140,7 +126,6 @@ export class KarmaService {
 
       await session.commitTransaction();
 
-      // Poblamos los documentos después de la transacción para devolver la información completa.
       await senderKarmaDoc.populate('user');
       await receiverKarmaDoc.populate('user');
 
@@ -157,9 +142,6 @@ export class KarmaService {
     }
   }
 
-  /**
-   * Obtiene los N usuarios con más (o menos) karma en un grupo.
-   */
   public async getTopKarma(groupId: number, ascending = false, limit = 10) {
     const group = await this.groupsService.getGroupInfo(groupId);
     if (!group) return [];
@@ -170,9 +152,6 @@ export class KarmaService {
     );
   }
 
-  /**
-   * Obtiene los usuarios que más karma y odio han dado en un grupo.
-   */
   public async getTopGiven(groupId: number, limit = 10) {
     const group = await this.groupsService.getGroupInfo(groupId);
     if (!group) return { topGivenKarma: [], topGivenHate: [] };
@@ -191,9 +170,6 @@ export class KarmaService {
     return { topGivenKarma, topGivenHate };
   }
 
-  /**
-   * Obtiene el documento de Karma de un usuario específico en un grupo.
-   */
   public async getKarmaForUser(
     userId: number,
     chatId: number,
@@ -215,9 +191,6 @@ export class KarmaService {
     }
   }
 
-  /**
-   * Obtiene los usuarios que más karma han recibido en un período de tiempo.
-   */
   public async getTopUsersByKarmaReceived(
     groupId: number,
     daysBack: number,
@@ -267,14 +240,10 @@ export class KarmaService {
     ]);
   }
 
-  /**
-   * Busca el registro de Karma de un usuario por su nombre o @username.
-   */
   public async findKarmaByUserQuery(
     input: string,
     groupId: number,
   ): Promise<PopulatedKarma | null> {
-    // Construye la query para el usuario.
     const isUsername = input.startsWith('@');
     const queryValue = isUsername ? input.substring(1) : input;
     const userQuery = isUsername
@@ -286,7 +255,6 @@ export class KarmaService {
           ],
         };
 
-    // Delega la búsqueda de entidades a sus respectivos servicios.
     const [group, user] = await Promise.all([
       this.groupsService.getGroupInfo(groupId),
       this.usersService.findOne(userQuery),
@@ -294,16 +262,12 @@ export class KarmaService {
 
     if (!group || !user) return null;
 
-    // El repositorio de Karma se encarga de la consulta final.
     return this.karmaRepository.findOneAndPopulate(
       { user: user._id, group: group._id },
       'user',
     ) as Promise<PopulatedKarma | null>;
   }
 
-  /**
-   * Obtiene el conteo total de usuarios y grupos, delegando a cada servicio.
-   */
   public async getTotalUsersAndGroups() {
     const [users, groups] = await Promise.all([
       this.usersService.count(),
@@ -312,9 +276,6 @@ export class KarmaService {
     return { users, groups };
   }
 
-  /**
-   * Obtiene la lista de grupos en los que un usuario tiene karma.
-   */
   public async getGroupsForUser(userId: number): Promise<Group[]> {
     const user = await this.usersService.findOne({ userId });
     if (!user) return [];
@@ -324,7 +285,6 @@ export class KarmaService {
 
     const groupIds = [...new Set(karmaRecords.map((r) => r.group))];
 
-    // Delega la búsqueda final a GroupsService.
     return this.groupsService.findByIds(groupIds);
   }
 }

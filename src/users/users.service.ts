@@ -16,10 +16,6 @@ export class UsersService {
 
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  /**
-   * Encuentra un usuario por su ID de Telegram o lo crea si no existe.
-   * Lógica consolidada y movida desde KarmaService.
-   */
   async findOrCreate(userData: ITelegramUserData): Promise<User> {
     const documentToUpsert: UpdateQuery<User> = {
       $set: {
@@ -38,17 +34,10 @@ export class UsersService {
     return user;
   }
 
-  /**
-   * Encuentra un único usuario que coincida con una query.
-   * Método de ayuda para KarmaService.
-   */
   async findOne(userQuery: FilterQuery<User>): Promise<User | null> {
     return this.usersRepository.findOne(userQuery).catch(() => null);
   }
 
-  /**
-   * Cuenta todos los usuarios en la base de datos.
-   */
   async count(): Promise<number> {
     return this.usersRepository.countDocuments();
   }

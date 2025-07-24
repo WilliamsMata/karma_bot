@@ -27,7 +27,7 @@ export const commandHandlers = [
 
 @Module({
   imports: [KarmaModule],
-  providers: [...commandHandlers, TelegramKeyboardService],
+  providers: [TelegramKeyboardService, ...commandHandlers],
   exports: [...commandHandlers],
 })
 export class CommandsModule {}

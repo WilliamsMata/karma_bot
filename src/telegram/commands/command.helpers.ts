@@ -3,11 +3,6 @@ type KarmaHistoryEntry = {
   karmaChange: number;
 };
 
-/**
- * Formatea un array de entradas de historial de karma en un string legible.
- * @param history - El array de entradas de historial.
- * @returns Un string con las últimas 10 entradas del historial, o un mensaje por defecto.
- */
 export const formatKarmaHistory = (
   history: KarmaHistoryEntry[] | undefined,
 ): string => {
@@ -15,7 +10,6 @@ export const formatKarmaHistory = (
     return 'No karma history found.';
   }
 
-  // Tomamos solo las últimas 10 entradas para no saturar el chat.
   return history
     .slice(-10)
     .map((entry) => {

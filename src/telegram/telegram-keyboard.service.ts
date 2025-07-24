@@ -17,12 +17,6 @@ export class TelegramKeyboardService {
     );
   }
 
-  /**
-   * Genera el markup del teclado de la Web App, pero SOLO si el chat es
-   * de tipo 'group' o 'supergroup'. En cualquier otro caso, devuelve undefined.
-   * @param chat - El objeto 'chat' completo del contexto de Telegraf.
-   * @returns Un objeto de teclado o undefined.
-   */
   getGroupWebAppKeyboard(
     chat: Chat,
   ): Markup.Markup<InlineKeyboardMarkup> | undefined {
