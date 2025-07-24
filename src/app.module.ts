@@ -1,0 +1,27 @@
+import { Module } from '@nestjs/common';
+import * as Joi from 'joi';
+import { ConfigModule } from '@nestjs/config';
+import { DatabaseModule } from './database/database.module';
+import { TelegramModule } from './telegram/telegram.module';
+import { UsersModule } from './users/users.module';
+import { KarmaModule } from './karma/karma.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: Joi.object({
+        TELEGRAM_BOT_TOKEN: Joi.string().required(),
+        MONGODB_URI: Joi.string().required(),
+        PORT: Joi.string().default('3000'),
+      }),
+    }),
+    DatabaseModule,
+    TelegramModule,
+    UsersModule,
+    KarmaModule,
+  ],
+  controllers: [],
+  providers: [],
+})
+export class AppModule {}
