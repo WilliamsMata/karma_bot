@@ -6,6 +6,7 @@ import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
+import { formatUsernameForDisplay } from '../command.helpers';
 
 @Injectable()
 export class TopReceivedCommandHandler implements ITextCommandHandler {
@@ -65,7 +66,7 @@ export class TopReceivedCommandHandler implements ITextCommandHandler {
 
       let message = `🌟 Top 10 users by karma received in the ${periodName}:\n\n`;
       topUsers.forEach((user, index) => {
-        const name = user.userName ? `@${user.userName}` : user.firstName;
+        const name = formatUsernameForDisplay(user);
         message += `${index + 1}. ${name} received ${user.totalKarmaReceived} karma\n`;
       });
 

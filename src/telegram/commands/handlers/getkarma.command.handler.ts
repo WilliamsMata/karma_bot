@@ -6,6 +6,7 @@ import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
+import { formatUsernameForDisplay } from '../command.helpers';
 
 @Injectable()
 export class GetKarmaCommandHandler implements ITextCommandHandler {
@@ -42,11 +43,9 @@ export class GetKarmaCommandHandler implements ITextCommandHandler {
         return;
       }
 
-      const userName = karma.user.userName
-        ? `@${karma.user.userName}`
-        : karma.user.firstName;
+      const displayName = formatUsernameForDisplay(karma.user);
       const message = `
-👤 User: ${userName}
+👤 User: ${displayName}
 ✨ Karma: ${karma.karma || 0} in this group
 
 ♥ Given karma: ${karma.givenKarma || 0}.

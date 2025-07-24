@@ -3,6 +3,12 @@ type KarmaHistoryEntry = {
   karmaChange: number;
 };
 
+type UserLike = {
+  firstName: string;
+  lastName?: string;
+  userName?: string;
+};
+
 export const formatKarmaHistory = (
   history: KarmaHistoryEntry[] | undefined,
 ): string => {
@@ -18,4 +24,20 @@ export const formatKarmaHistory = (
       return `${dateString}: ${sign}${entry.karmaChange}`;
     })
     .join('\n');
+};
+
+export const formatUsernameForDisplay = (user: UserLike): string => {
+  if (user.firstName && user.lastName) {
+    return `${user.firstName} ${user.lastName}`;
+  }
+
+  if (user.firstName) {
+    return user.firstName;
+  }
+
+  if (user.userName) {
+    return user.userName;
+  }
+
+  return 'An unknown user';
 };

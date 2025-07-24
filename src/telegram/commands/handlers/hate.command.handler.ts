@@ -6,6 +6,7 @@ import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
+import { formatUsernameForDisplay } from '../command.helpers';
 
 @Injectable()
 export class HateCommandHandler implements ITextCommandHandler {
@@ -36,9 +37,7 @@ export class HateCommandHandler implements ITextCommandHandler {
 
     let message = '😠 Top 10 Most Hated Users:\n\n';
     hatedUsers.forEach((userKarma, index) => {
-      const name = userKarma.user.userName
-        ? `@${userKarma.user.userName}`
-        : userKarma.user.firstName;
+      const name = formatUsernameForDisplay(userKarma.user);
       message += `${index + 1}. ${name} has ${userKarma.karma} karma\n`;
     });
 
