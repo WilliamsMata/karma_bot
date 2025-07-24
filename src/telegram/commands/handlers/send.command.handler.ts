@@ -1,27 +1,39 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { Context } from 'telegraf';
+import { Update } from 'telegraf/types';
 import { KarmaService } from '../../../karma/karma.service';
 import { ICommandHandler } from '../command.interface';
-import { Update } from 'telegraf/types';
+import { TelegramKeyboardService } from '../../telegram-keyboard.service';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 
 @Injectable()
 export class SendCommandHandler implements ICommandHandler {
   private readonly logger = new Logger(SendCommandHandler.name);
   command = /^\/send(?:@\w+)?\s+(\d+)$/;
 
-  constructor(private readonly karmaService: KarmaService) {}
+  constructor(
+    private readonly karmaService: KarmaService,
+    private readonly keyboardService: TelegramKeyboardService,
+  ) {}
 
   async handle(ctx: Context<Update>): Promise<void> {
-    // --- TYPE GUARDS: La solución a la mayoría de los errores ---
-    // 1. Aseguramos que el contexto tiene las propiedades que necesitamos.
-    if (!ctx.message || !('text' in ctx.message) || !ctx.from || !ctx.chat) {
-      return;
-    }
-    // 2. Aseguramos que es una respuesta a otro mensaje con autor.
-    if (!ctx.message.reply_to_message || !ctx.message.reply_to_message.from) {
-      await ctx.reply(
-        "You need to reply to a user's message to send them karma.",
-      );
+    if (
+      !ctx.message ||
+      !('text' in ctx.message) ||
+      !ctx.from ||
+      !ctx.chat ||
+      !ctx.message.reply_to_message ||
+      !ctx.message.reply_to_message.from
+    ) {
+      if (
+        ctx.message &&
+        'text' in ctx.message &&
+        ctx.message.text.match(this.command)
+      ) {
+        await ctx.reply(
+          "You need to reply to a user's message to send them karma.",
+        );
+      }
       return;
     }
 
@@ -31,7 +43,6 @@ export class SendCommandHandler implements ICommandHandler {
       return;
     }
 
-    // A partir de aquí, TypeScript sabe que las propiedades son seguras.
     const sender = ctx.from;
     const receiver = ctx.message.reply_to_message.from;
     const quantity = parseInt(match[1], 10);
@@ -51,8 +62,15 @@ export class SendCommandHandler implements ICommandHandler {
       return;
     }
 
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+
+    const extra: ExtraReplyMessage = {};
+    extra.reply_parameters = { message_id: ctx.message.message_id };
+    if (keyboard) {
+      extra.reply_markup = keyboard.reply_markup;
+    }
+
     try {
-      // Gracias al Paso 1, 'result' ahora está correctamente tipado.
       const result = await this.karmaService.transferKarma(
         sender,
         receiver,
@@ -67,17 +85,23 @@ export class SendCommandHandler implements ICommandHandler {
         ? `@${result.receiverKarma.user.userName}`
         : result.receiverKarma.user.firstName;
 
-      await ctx.telegram.sendMessage(
-        ctx.chat.id,
-        `💸 ${senderName} has sent ${quantity} karma to ${receiverName}!\n\n${senderName} new karma: ${result.senderKarma.karma}\n${receiverName} new karma: ${result.receiverKarma.karma}`,
-        { reply_parameters: { message_id: ctx.message.message_id } },
-      );
+      const message = `💸 ${senderName} has sent ${quantity} karma to ${receiverName}!\n\n${senderName} new karma: ${result.senderKarma.karma}\n${receiverName} new karma: ${result.receiverKarma.karma}`;
+
+      await ctx.telegram.sendMessage(ctx.chat.id, message, extra);
     } catch (error) {
       this.logger.error(
-        `Error in send command for message ${ctx.message.message_id}`,
+        `Error during /send command from ${sender.id} to ${receiver.id}`,
         error,
       );
-      await ctx.reply('An error occurred while processing your request.');
+
+      if (error instanceof BadRequestException) {
+        await ctx.reply(error.message, extra);
+      } else {
+        await ctx.reply(
+          'A critical error occurred during the karma transfer.',
+          extra,
+        );
+      }
     }
   }
 }

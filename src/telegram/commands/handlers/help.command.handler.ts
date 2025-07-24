@@ -1,12 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { Context } from 'telegraf';
+import { Update } from 'telegraf/types';
 import { ICommandHandler } from '../command.interface';
+import { TelegramKeyboardService } from '../../telegram-keyboard.service';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 
 @Injectable()
 export class HelpCommandHandler implements ICommandHandler {
   command = 'help';
 
-  async handle(ctx: Context): Promise<void> {
+  constructor(private readonly keyboardService: TelegramKeyboardService) {}
+
+  async handle(ctx: Context<Update>): Promise<void> {
+    if (!ctx.chat) return;
+
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+
+    const extra: ExtraReplyMessage = {};
+    extra.parse_mode = 'Markdown';
+    if (keyboard) {
+      extra.reply_markup = keyboard.reply_markup;
+    }
+
     const helpMessage = `
 Hello! I'm the Karma Bot. Here's how you can interact with me:
 
@@ -37,6 +52,6 @@ Hello! I'm the Karma Bot. Here's how you can interact with me:
 *Other:*
   • \`/help\`: Shows this help message.
     `;
-    await ctx.reply(helpMessage.trim(), { parse_mode: 'Markdown' });
+    await ctx.reply(helpMessage.trim(), extra);
   }
 }

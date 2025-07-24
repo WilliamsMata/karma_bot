@@ -1,17 +1,20 @@
-// src/telegram/commands/handlers/top-received.command.handler.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { Context } from 'telegraf';
 import { KarmaService } from '../../../karma/karma.service';
 import { ICommandHandler } from '../command.interface';
+import { TelegramKeyboardService } from '../../telegram-keyboard.service';
 import { Update } from 'telegraf/types';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 
 @Injectable()
 export class TopReceivedCommandHandler implements ICommandHandler {
   private readonly logger = new Logger(TopReceivedCommandHandler.name);
-  // Esta RegExp captura cualquiera de los tres comandos.
   command = /^\/(today|month|year)/;
 
-  constructor(private readonly karmaService: KarmaService) {}
+  constructor(
+    private readonly karmaService: KarmaService,
+    private readonly keyboardService: TelegramKeyboardService,
+  ) {}
 
   async handle(ctx: Context<Update>): Promise<void> {
     if (!ctx.chat || !ctx.message || !('text' in ctx.message)) return;
@@ -19,7 +22,7 @@ export class TopReceivedCommandHandler implements ICommandHandler {
     const match = ctx.message.text.match(this.command);
     if (!match) return;
 
-    const commandName = match[1]; // 'today', 'month', or 'year'
+    const commandName = match[1];
     let daysBack: number;
     let periodName: string;
 
@@ -46,10 +49,17 @@ export class TopReceivedCommandHandler implements ICommandHandler {
         daysBack,
         10,
       );
+      const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+
+      const extra: ExtraReplyMessage = {};
+      if (keyboard) {
+        extra.reply_markup = keyboard.reply_markup;
+      }
 
       if (topUsers.length === 0) {
         await ctx.reply(
           `No users received karma in the ${periodName} in this group.`,
+          extra,
         );
         return;
       }
@@ -60,7 +70,7 @@ export class TopReceivedCommandHandler implements ICommandHandler {
         message += `${index + 1}. ${name} received ${user.totalKarmaReceived} karma\n`;
       });
 
-      await ctx.reply(message);
+      await ctx.reply(message, extra);
     } catch (error) {
       this.logger.error(`Error handling /${commandName}`, error);
       await ctx.reply(

@@ -20,6 +20,8 @@ import { SendCommandHandler } from './commands/handlers/send.command.handler';
 import { HistoryCommandHandler } from './commands/handlers/history.command.handler';
 import { GetHistoryCommandHandler } from './commands/handlers/gethistory.command.handler';
 import { TopReceivedCommandHandler } from './commands/handlers/top-received.command.handler';
+import { TelegramKeyboardService } from './telegram-keyboard.service';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 
 const karmaCooldowns: Record<number, number> = {};
 const KARMA_COOLDOWN_MS = 60 * 1000; // 1 minuto
@@ -39,6 +41,7 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
   constructor(
     private readonly configService: ConfigService,
     private readonly karmaService: KarmaService,
+    private readonly keyboardService: TelegramKeyboardService,
     meHandler: MeCommandHandler,
     topHandler: TopCommandHandler,
     hateHandler: HateCommandHandler,
@@ -144,12 +147,17 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
         );
 
         karmaCooldowns[sender.id] = now;
+
+        const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+        const extra: ExtraReplyMessage = {};
+        extra.reply_parameters = { message_id: ctx.message.message_id };
+        if (keyboard) {
+          extra.reply_markup = keyboard.reply_markup;
+        }
         await ctx.telegram.sendMessage(
           ctx.chat.id,
           `${result.receiverName} now has ${result.newKarma} karma.`,
-          {
-            reply_parameters: { message_id: ctx.message.message_id },
-          },
+          extra,
         );
       } catch (error) {
         this.logger.error(
