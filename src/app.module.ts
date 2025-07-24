@@ -5,6 +5,8 @@ import { DatabaseModule } from './database/database.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { UsersModule } from './users/users.module';
 import { KarmaModule } from './karma/karma.module';
+import { KarmaApiModule } from './api/karma/karma-api.module';
+import { UsersApiModule } from './api/users/users-api.module';
 
 @Module({
   imports: [
@@ -20,6 +22,10 @@ import { KarmaModule } from './karma/karma.module';
     TelegramModule,
     UsersModule,
     KarmaModule,
+
+    // API modules for external access
+    KarmaApiModule,
+    UsersApiModule,
   ],
   controllers: [],
   providers: [],
