@@ -87,15 +87,10 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
 
   private async handleCommand(ctx: TextCommandContext) {
     for (const handler of this.commandHandlers.values()) {
-      const command =
-        typeof handler.command === 'string'
-          ? `/${handler.command}`
-          : handler.command;
+      const command = this.getCommandHandler(handler);
 
-      if (ctx.message.text.match(command)) {
-        if (isTextCommandHandler(handler)) {
-          await handler.handle(ctx);
-        }
+      if (ctx.message.text.match(command) && isTextCommandHandler(handler)) {
+        await handler.handle(ctx);
         return;
       }
     }
@@ -104,6 +99,12 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
   private registerCommand(handler: ICommandHandler<any>) {
     this.commandHandlers.set(handler.command, handler);
     this.logger.log(`Command registered: ${handler.command}`);
+  }
+
+  private getCommandHandler(handler: ICommandHandler<any>) {
+    return typeof handler.command === 'string'
+      ? `/${handler.command}`
+      : handler.command;
   }
 
   onApplicationShutdown(signal: string) {
