@@ -16,7 +16,7 @@ import { APP_GUARD } from '@nestjs/core';
       isGlobal: true,
       validationSchema: Joi.object({
         TELEGRAM_BOT_TOKEN: Joi.string().required(),
-        MONGODB_URI: Joi.string().required(),
+        MONGODB_CNN: Joi.string().required(),
         TELEGRAM_BOT_USERNAME: Joi.string().required(),
         PORT: Joi.string().default('3000'),
       }),

@@ -117,7 +117,7 @@ The codebase is structured following SOLID principles to ensure it is maintainab
     TELEGRAM_BOT_USERNAME=YOUR_TELEGRAM_BOT_USERNAME_HERE
 
     # MongoDB connection string
-    MONGODB_URI=mongodb://localhost:27017/karma_bot
+    MONGODB_CNN=mongodb://localhost:27017/karma_bot
 
     # The port for the API server
     PORT=3000
