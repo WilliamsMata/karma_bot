@@ -1,32 +1,33 @@
-
-# ? Stage 1: install dependencies
-FROM node:lts-alpine AS deps
+FROM node:22-alpine AS builder
 
 WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci
 
-# ? Stage 2: Run the app
-FROM node:lts-alpine AS runner
-
-WORKDIR /usr/src/app
-
-# Copy node_modules from deps stage
-COPY --from=deps /usr/src/app/node_modules ./node_modules
-
-# Copy the source code
 COPY . .
+
+RUN npm run build
+
+
+FROM node:22-alpine
 
 ENV NODE_ENV=production
 
-# Set the user because running as root is a security risk
+WORKDIR /usr/src/app
+
+RUN addgroup -S node && adduser -S node -G node
+RUN chown -R node:node /usr/src/app
+
 USER node
 
-# Expose the port
-EXPOSE 3000 
+COPY --from=builder /usr/src/app/package*.json ./
 
-# Run the app
-CMD ["node", "index.js"]
+RUN npm ci --omit=dev
+
+COPY --from=builder /usr/src/app/dist ./dist
+
+EXPOSE 3000
+
+CMD ["node", "dist/main.js"]

@@ -1,152 +1,186 @@
-# ✨ KarmaBot for Telegram ✨
+# ✨ KarmaBot: A Modern Telegram Karma Bot ✨
 
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](package.json)
-[![Node.js](https://img.shields.io/badge/Node.js-18.x+-green.svg)](https://nodejs.org/)
-[![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot%20API-Node-blue?logo=telegram)](https://github.com/yagop/node-telegram-bot-api)
+[![NestJS](https://img.shields.io/badge/NestJS-v10.x-red?logo=nestjs)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Telegraf](https://img.shields.io/badge/Telegraf-v4.x-blue?logo=telegram)](https://telegraf.js.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-green?logo=mongodb)](https://mongoosejs.com/)
 
-A sophisticated Telegram bot designed to track user reputation (karma) within group chats seamlessly. Built with Node.js, Mongoose, and the `node-telegram-bot-api`.
+A sophisticated Telegram bot designed to seamlessly track user reputation (karma) within group chats, now rebuilt with the power and structure of **NestJS**.
 
----
+KarmaBot allows group members to easily give or take karma points from each other, fostering community interaction and providing valuable insights. It features comprehensive leaderboards, individual karma tracking, and exposes a robust API perfect for its accompanying **Telegram Mini App**.
 
-<!-- Optional: Add a project logo or banner here -->
-<!-- <p align="center">
-  <img src="link/to/your/logo.png" alt="KarmaBot Logo" width="200"/>
-</p> -->
+## 📖 Table of Contents
 
-**KarmaBot** allows group members to easily give or take karma points from each other, fostering interaction and providing insights into user contributions and popularity within the community. Features include leaderboards, individual karma tracking, transfer capabilities, and historical data.
+- [✨ KarmaBot: A Modern Telegram Karma Bot ✨](#-karmabot-a-modern-telegram-karma-bot-)
+  - [📖 Table of Contents](#-table-of-contents)
+  - [🚀 For Group Members](#-for-group-members)
+    - [Key Features](#key-features)
+    - [Getting Started](#getting-started)
+  - [👨‍💻 For Developers](#-for-developers)
+    - [Architectural Philosophy](#architectural-philosophy)
+    - [💻 Technology Stack](#-technology-stack)
+    - [🔧 Installation \& Setup](#-installation--setup)
+    - [📂 Project Structure](#-project-structure)
+    - [🙌 Contributing](#-contributing)
+    - [📜 License](#-license)
+    - [👤 Author](#-author)
+    - [🙏 Acknowledgments](#-acknowledgments)
 
----
+## 🚀 For Group Members
 
-## 🚀 Features
+### Key Features
 
 - 👍 **Give Karma:** Reply `+1` to a message to award a karma point.
-- 👎 **Give Hate:** Reply `-1` to a message to deduct a karma point.
-- ⏱️ **Cooldown:** Users must wait 1 minute between giving karma/hate.
-- 👤 **My Status (`/me`):** Check your own karma score, total karma given, and total hate given.
-- 🏆 **Top Users (`/top`):** View the top 10 users with the highest karma scores in the group.
-- 😠 **Most Hated (`/hate`):** See the top 10 users with the lowest karma scores.
-- ❤️ **Top Givers (`/mostgivers`):** Leaderboard of users who have given the most positive karma and the most negative karma (hate).
-- 🔍 **Check Others (`/getkarma <user>`):** Look up the karma details of a specific user by name or @username.
-- 📜 **Karma History (`/history`):** View your own last 10 karma changes.
-- 🕵️ **Others' History (`/gethistory <user>`):** View the last 10 karma changes for a specific user.
-- 💸 **Transfer Karma (`/send <amount>`):** Reply to a user to send them a specific amount of your own karma points.
-- 📅 **Periodic Leaders:**
+- 👎 **Give Hate:** Reply `-1` to a message to deduct a karma point (hate).
+- ⏱️ **Cooldown System:** A 1-minute cooldown prevents spamming karma.
+- 👤 **Your Status (`/me`):** Check your own karma score and see how much karma and hate you've given.
+- 🏆 **Leaderboards:**
+  - `/top`: The top 10 users with the most karma.
+  - `/hate`: The top 10 users with the least karma.
+  - `/mostgivers`: See who gives the most karma and hate.
+- 📅 **Periodic Rankings:**
   - `/today`: Top users by karma received in the last 24 hours.
   - `/month`: Top users by karma received in the last 30 days.
   - `/year`: Top users by karma received in the last 365 days.
-- ❓ **Help (`/help`):** Displays a comprehensive list of available commands.
-- 💾 **Persistent Storage:** Karma data is stored reliably using MongoDB.
-- ⚙️ **Modular Codebase:** Cleanly structured for maintainability and potential extension.
+- 💸 **Transfer Karma (`/send <amount>`):** Reply to a user's message to send them some of your own karma points.
+- 📜 **Karma History:**
+  - `/history`: View your own last 10 karma changes.
+  - `/gethistory <user>`: View the history for a specific user.
+- 📱 **Mini App Integration:** Most commands include an "Open Mini App" button for a rich, interactive experience.
+
+### Getting Started
+
+1.  **Add the Bot:** An admin must invite KarmaBot to your Telegram group.
+2.  **Give Karma:** Simply **reply** to a user's message with `+1` or `-1`.
+3.  **Use Commands:** Type commands like `/me`, `/top`, or `/help` directly in the chat to interact with the bot.
 
 ---
 
-## 🛠️ How to Use (For Group Members)
+## 👨‍💻 For Developers
 
-1.  **Add the Bot:** Invite KarmaBot to your Telegram group.
-2.  **Give/Take Karma:** Simply **reply** to any user's message with `+1` to give karma or `-1` to give hate.
-3.  **Use Commands:** Type commands directly into the chat:
-    - `/me` - To see your score.
-    - `/top` - To see the leaderboard.
-    - `/send <amount>` - **Reply** to a user's message with this command (e.g., `/send 5`).
-    - `/help` - For the full command list.
-    - ...and all other commands listed in the Features section!
+This project is a complete migration of a classic Node.js bot to a modern, scalable, and type-safe NestJS architecture. It serves as a real-world example of applying enterprise-level software design principles to a Telegram bot.
 
----
+### Architectural Philosophy
 
-## 🔧 Installation & Setup (For Developers)
+The codebase is structured following SOLID principles to ensure it is maintainable, testable, and easy to extend.
 
-Want to run your own instance of KarmaBot? Follow these steps:
+- **Modular & Scalable:** Built on the NestJS module system, each domain (`users`, `groups`, `karma`) is a self-contained module with its own repository and service, promoting low coupling.
+- **SOLID Principles:**
+  - **Single Responsibility:** Services are decoupled. `KarmaService` depends on `UsersService`, not `UsersRepository`, ensuring that each service is the single source of truth for its domain.
+  - **Open/Closed:** The application is open for extension but closed for modification.
+- **Command Pattern:** Adding a new command is as simple as creating a new `CommandHandler` class that implements a generic interface (`ICommandHandler`). The core `TelegramService` discovers and registers it without needing any modification.
+- **Type Safety:** Fully written in TypeScript, using custom types (`TextCommandContext`), DTOs, and generics to prevent common runtime errors and ensure a reliable developer experience.
+
+### 💻 Technology Stack
+
+| Role                  | Technology                                                                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**         | [**NestJS**](https://nestjs.com/) - A progressive Node.js framework for building efficient and scalable server-side applications.                   |
+| **Language**          | [**TypeScript**](https://www.typescriptlang.org/) - For robust type safety and modern JavaScript features.                                          |
+| **Telegram API**      | [**Telegraf**](https://telegraf.js.org/) - A modern and powerful framework for building Telegram bots.                                              |
+| **Database**          | [**MongoDB**](https://www.mongodb.com/) with [**Mongoose**](https://mongoosejs.com/) - For flexible and persistent data storage.                    |
+| **Configuration**     | [**@nestjs/config**](https://docs.nestjs.com/techniques/configuration) with **Joi** - For type-safe environment variable management and validation. |
+| **API Rate Limiting** | [**@nestjs/throttler**](https://docs.nestjs.com/security/rate-limiting) - To protect API endpoints from abuse.                                      |
+
+### 🔧 Installation & Setup
 
 1.  **Prerequisites:**
-
-    - Node.js (v18.x or higher recommended)
+    - Node.js (v18.x or higher)
     - npm or yarn
-    - A MongoDB instance (local or cloud like MongoDB Atlas)
-    - A Telegram Bot Token (Get one from @BotFather on Telegram)
+    - A running MongoDB instance (local or cloud)
+    - A Telegram Bot Token and Username (from [@BotFather](https://t.me/BotFather))
 
 2.  **Clone the Repository:**
 
     ```bash
     git clone https://github.com/WilliamsMata/karma_bot
-    cd karmabot
+    cd karma_bot
     ```
 
 3.  **Install Dependencies:**
 
     ```bash
     npm install
-    # or
-    yarn install
     ```
 
 4.  **Configure Environment Variables:**
-    Create a `.env` file in the root directory of the project and add the following variables:
+    Create a `.env` file in the project root by copying the example: `cp .env.example .env`. Then, fill in the required variables:
 
     ```dotenv
     # .env
+
+    # Your Telegram bot token from @BotFather
     TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
+
+    # Your bot's username
     TELEGRAM_BOT_USERNAME=YOUR_TELEGRAM_BOT_USERNAME_HERE
-    MONGODB_CNN=YOUR_MONGODB_CONNECTION_STRING_HERE
+
+    # MongoDB connection string
+    MONGODB_URI=mongodb://localhost:27017/karma_bot
+
+    # The port for the API server
     PORT=3000
     ```
 
-    _Replace the placeholder values with your actual bot token and MongoDB connection string._
-
-5.  **Run the Bot:**
-
-    - **Development Mode (with nodemon for auto-reloads):**
+5.  **Run the Application:**
+    - **Development Mode (with auto-reload):**
       ```bash
-      npm run dev
+      npm run start:dev
       ```
     - **Production Mode:**
       ```bash
-      npm start
+      npm run build
+      npm run start:prod
       ```
 
-6.  **Database Indexes:**
-    Upon the first run, Mongoose will attempt to create necessary indexes in your MongoDB collection based on the schema definitions. Ensure your MongoDB user has permissions to create indexes. If you added the `unique` index on `userId` and `groupId`, make sure your existing data doesn't violate this constraint _before_ starting the bot with the updated schema.
+### 📂 Project Structure
+
+```
+src
+├── api/                # API controllers and modules (for the Mini App)
+│   ├── karma/
+│   └── users/
+├── karma/              # Core business logic for karma
+│   ├── dto/
+│   ├── schemas/
+│   ├── karma.module.ts
+│   ├── karma.repository.ts
+│   └── karma.service.ts
+├── telegram/           # All Telegram-specific logic
+│   ├── commands/       # Command pattern implementation
+│   │   ├── handlers/   # Individual classes for each command (/me, /top, etc.)
+│   │   └── commands.module.ts
+│   ├── handlers/       # Handlers for non-command events (e.g., +1 messages)
+│   ├── shared/         # Shared utilities (e.g., keyboard service)
+│   ├── telegram.module.ts
+│   └── telegram.service.ts # Main service for bot connection and event routing
+├── users/              # Business logic for users
+├── groups/             # Business logic for groups
+├── database/           # Abstract repository and database module setup
+├── app.module.ts       # Root module of the application
+└── main.ts             # Application entry point
+```
 
 ---
 
-## 💻 Technology Stack
+### 🙌 Contributing
 
-- **Backend:** Node.js
-- **Telegram API:** `node-telegram-bot-api`
-- **Database:** MongoDB with Mongoose ODM
-- **Environment:** `dotenv`
-
----
-
-## 🙌 Contributing
-
-Contributions are welcome! If you'd like to improve KarmaBot, please follow these steps:
+Contributions are highly welcome! If you have ideas for improvements or find a bug, please feel free to:
 
 1.  **Fork** the repository.
-2.  Create a new **branch** (`git checkout -b feature/your-feature-name`).
-3.  Make your changes and **commit** them (`git commit -m 'Add some feature'`).
-4.  **Push** to the branch (`git push origin feature/your-feature-name`).
-5.  Open a **Pull Request**.
+2.  Create a new **branch** for your feature or fix.
+3.  Make your changes and **commit** them with clear messages.
+4.  Push to your branch and open a **Pull Request**.
 
-Please ensure your code adheres to the existing style and that any new functionality is well-documented. Feel free to open an issue to discuss potential changes beforehand.
+### 📜 License
 
----
+This project is licensed under the **ISC License**.
 
-## 📜 License
+### 👤 Author
 
-This project is licensed under the ISC License - see the [LICENSE](https://github.com/WilliamsMata/karma_bot/blob/main/LICENSE) file for details (or state "ISC License" if you don't have a separate file yet).
+- **Williams Mata** - [GitHub](https://github.com/WilliamsMata)
 
----
+### 🙏 Acknowledgments
 
-## 👤 Author
-
-- **Williams Mata** - _Initial work_ - [GitHub](https://github.com/WilliamsMata)
-
----
-
-Enjoy tracking karma in your Telegram groups! 🎉
-
-# Acknowledgments
-
-This project was inspired by the [karma bot](https://github.com/hbourgeot/karmagobot) ↗ from [hbourgeot](https://github.com/hbourgeot).
+This project was inspired by the [karma bot](https://github.com/hbourgeot/karmagobot) from [hbourgeot](https://github.com/hbourgeot).
