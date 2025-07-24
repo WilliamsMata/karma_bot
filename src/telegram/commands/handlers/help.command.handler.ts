@@ -1,19 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { Context } from 'telegraf';
-import { Update } from 'telegraf/types';
-import { ICommandHandler } from '../command.interface';
-import { TelegramKeyboardService } from '../../telegram-keyboard.service';
+import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import {
+  ITextCommandHandler,
+  TextCommandContext,
+} from 'src/telegram/telegram.types';
 
 @Injectable()
-export class HelpCommandHandler implements ICommandHandler {
+export class HelpCommandHandler implements ITextCommandHandler {
   command = 'help';
 
   constructor(private readonly keyboardService: TelegramKeyboardService) {}
 
-  async handle(ctx: Context<Update>): Promise<void> {
-    if (!ctx.chat) return;
-
+  async handle(ctx: TextCommandContext): Promise<void> {
     const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
 
     const extra: ExtraReplyMessage = {};

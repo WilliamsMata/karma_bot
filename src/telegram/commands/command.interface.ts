@@ -1,7 +1,7 @@
 import { Context } from 'telegraf';
 import { Update } from 'telegraf/types';
 
-export interface ICommandHandler {
+export interface ICommandHandler<T extends Update = Update> {
   command: string | RegExp;
-  handle(ctx: Context<Update>): Promise<void>;
+  handle(ctx: Context<T>): Promise<void>;
 }

@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-
-import { Context } from 'telegraf';
 import { KarmaService } from '../../../karma/karma.service';
-import { ICommandHandler } from '../command.interface';
-import { TelegramKeyboardService } from '../../telegram-keyboard.service';
-import { Update } from 'telegraf/types';
+import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import {
+  ITextCommandHandler,
+  TextCommandContext,
+} from 'src/telegram/telegram.types';
 
 @Injectable()
-export class TopCommandHandler implements ICommandHandler {
+export class TopCommandHandler implements ITextCommandHandler {
   command = 'top';
 
   constructor(
@@ -16,9 +16,7 @@ export class TopCommandHandler implements ICommandHandler {
     private readonly keyboardService: TelegramKeyboardService,
   ) {}
 
-  async handle(ctx: Context<Update>): Promise<void> {
-    if (!ctx.chat) return;
-
+  async handle(ctx: TextCommandContext): Promise<void> {
     const topUsers = await this.karmaService.getTopKarma(
       ctx.chat.id,
       false,

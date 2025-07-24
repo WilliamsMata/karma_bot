@@ -1,13 +1,14 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { Context } from 'telegraf';
-import { Update } from 'telegraf/types';
 import { KarmaService } from '../../../karma/karma.service';
-import { ICommandHandler } from '../command.interface';
-import { TelegramKeyboardService } from '../../telegram-keyboard.service';
+import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import {
+  ITextCommandHandler,
+  TextCommandContext,
+} from 'src/telegram/telegram.types';
 
 @Injectable()
-export class SendCommandHandler implements ICommandHandler {
+export class SendCommandHandler implements ITextCommandHandler {
   private readonly logger = new Logger(SendCommandHandler.name);
   command = /^\/send(?:@\w+)?\s+(\d+)$/;
 
@@ -16,7 +17,7 @@ export class SendCommandHandler implements ICommandHandler {
     private readonly keyboardService: TelegramKeyboardService,
   ) {}
 
-  async handle(ctx: Context<Update>): Promise<void> {
+  async handle(ctx: TextCommandContext): Promise<void> {
     if (
       !ctx.message ||
       !('text' in ctx.message) ||

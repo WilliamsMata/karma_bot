@@ -1,14 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Context } from 'telegraf';
 import { KarmaService } from '../../../karma/karma.service';
-import { ICommandHandler } from '../command.interface';
-import { Update } from 'telegraf/types';
 import { formatKarmaHistory } from '../command.helpers';
-import { TelegramKeyboardService } from '../../telegram-keyboard.service';
+import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import {
+  ITextCommandHandler,
+  TextCommandContext,
+} from 'src/telegram/telegram.types';
 
 @Injectable()
-export class GetHistoryCommandHandler implements ICommandHandler {
+export class GetHistoryCommandHandler implements ITextCommandHandler {
   private readonly logger = new Logger(GetHistoryCommandHandler.name);
   command = /^\/gethistory(?:@\w+)?\s+(.+)$/;
 
@@ -17,9 +18,7 @@ export class GetHistoryCommandHandler implements ICommandHandler {
     private readonly keyboardService: TelegramKeyboardService,
   ) {}
 
-  async handle(ctx: Context<Update>): Promise<void> {
-    if (!ctx.chat || !ctx.message || !('text' in ctx.message)) return;
-
+  async handle(ctx: TextCommandContext): Promise<void> {
     const match = ctx.message.text.match(this.command);
     if (!match) {
       await ctx.reply(

@@ -10,7 +10,7 @@ import { SendCommandHandler } from './handlers/send.command.handler';
 import { HistoryCommandHandler } from './handlers/history.command.handler';
 import { GetHistoryCommandHandler } from './handlers/gethistory.command.handler';
 import { TopReceivedCommandHandler } from './handlers/top-received.command.handler';
-import { TelegramKeyboardService } from '../telegram-keyboard.service';
+import { TelegramSharedModule } from '../shared/telegram-shared.module';
 
 export const commandHandlers = [
   MeCommandHandler,
@@ -26,8 +26,8 @@ export const commandHandlers = [
 ];
 
 @Module({
-  imports: [KarmaModule],
-  providers: [TelegramKeyboardService, ...commandHandlers],
+  imports: [KarmaModule, TelegramSharedModule],
+  providers: [...commandHandlers],
   exports: [...commandHandlers],
 })
 export class CommandsModule {}
