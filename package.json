@@ -1,10 +1,9 @@
 {
   "name": "karma_bot",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
-  "private": true,
-  "license": "UNLICENSED",
+  "version": "2.0.0",
+  "description": "A scalable Telegram Karma Bot powered by NestJS and TypeScript. Tracks community reputation with leaderboards, history, and a REST API for its Mini App.",
+  "author": "WilliamsMata",
+  "license": "ISC",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -78,5 +77,9 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WilliamsMata/karma_bot.git"
   }
 }
