@@ -1,14 +1,12 @@
 import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
-import { KarmaService } from '../../karma/karma.service';
+import { UsersApiService } from './users-api.service';
 
 @Controller('users')
 export class UsersApiController {
-  constructor(private readonly karmaService: KarmaService) {}
+  constructor(private readonly usersApiService: UsersApiService) {}
 
   @Get(':userId/groups')
   async getUserGroups(@Param('userId', ParseIntPipe) userId: number) {
-    const groups = await this.karmaService.getGroupsForUser(userId);
-
-    return groups.map(({ _id, ...rest }) => rest);
+    return this.usersApiService.getGroupsForUser(userId);
   }
 }

@@ -1,50 +1,17 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  NotFoundException,
-} from '@nestjs/common';
-import { KarmaService } from '../../karma/karma.service';
-import { GroupsService } from '../../groups/groups.service';
-import { GroupUserKarmaDto } from 'src/karma/dto/group-user-karma.dto';
+import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { KarmaApiService } from './karma-api.service';
 
 @Controller('karma')
 export class KarmaApiController {
-  constructor(
-    private readonly karmaService: KarmaService,
-    private readonly groupsService: GroupsService,
-  ) {}
+  constructor(private readonly karmaApiService: KarmaApiService) {}
 
   @Get('total')
   async getTotalStats() {
-    return this.karmaService.getTotalUsersAndGroups();
+    return this.karmaApiService.getTotalStats();
   }
 
   @Get('group/:groupId')
   async getUsersByGroupId(@Param('groupId', ParseIntPipe) groupId: number) {
-    const [groupInfo, usersFromService] = await Promise.all([
-      this.groupsService.getGroupInfo(groupId),
-      this.karmaService.getTopKarma(groupId, false, 0),
-    ]);
-
-    if (!groupInfo) {
-      throw new NotFoundException(`Group with ID ${groupId} not found.`);
-    }
-
-    const users: GroupUserKarmaDto[] = usersFromService.map((karmaDoc) => {
-      return {
-        _id: karmaDoc._id.toString(),
-        karma: karmaDoc.karma,
-        givenKarma: karmaDoc.givenKarma,
-        givenHate: karmaDoc.givenHate,
-        userId: karmaDoc.user.userId,
-        firstName: karmaDoc.user.firstName,
-        lastName: karmaDoc.user.lastName,
-        userName: karmaDoc.user.userName,
-      };
-    });
-
-    return { groupInfo, users };
+    return this.karmaApiService.getGroupLeaderboard(groupId);
   }
 }
