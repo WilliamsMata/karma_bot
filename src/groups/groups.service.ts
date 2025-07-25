@@ -11,36 +11,27 @@ interface ITelegramChat {
 export class GroupsService {
   constructor(private readonly groupsRepository: GroupsRepository) {}
 
-  public async findPublicGroupsByIds(groupIds: any[]): Promise<Group[]> {
-    const groupsFromDb = await this.groupsRepository.find({
-      _id: { $in: groupIds },
-      groupName: { $exists: true, $ne: null },
-    });
-
-    // Filter out groups with invalid IDs (less than 13 characters)
-    const filteredGroups = groupsFromDb.filter(
-      (g) => g.groupId.toString().length >= 13,
-    );
-
-    return filteredGroups;
-  }
-
   async findOrCreate(chatData: ITelegramChat): Promise<Group> {
-    const group = await this.groupsRepository.upsert(
-      { groupId: chatData.id },
-      { $set: { groupName: chatData.title } },
-    );
+    const group = await this.groupsRepository.findOrCreate(chatData);
     if (!group)
       throw new Error(`Could not find or create group ${chatData.id}`);
     return group;
   }
 
+  async findPublicGroupsByIds(groupIds: any[]): Promise<Group[]> {
+    const groupsFromDb = await this.groupsRepository.findPublicByIds(groupIds);
+    const filteredGroups = groupsFromDb.filter(
+      (g) => g.groupId.toString().length >= 13,
+    );
+    return filteredGroups;
+  }
+
   async getGroupInfo(groupId: number): Promise<Group | null> {
-    return this.groupsRepository.findOne({ groupId });
+    return this.groupsRepository.findOneByGroupId(groupId);
   }
 
   async getDistinctGroupIds(): Promise<number[]> {
-    const groups = await this.groupsRepository.find({});
+    const groups = await this.groupsRepository.findAll();
     return groups.map((g) => g.groupId);
   }
 
@@ -49,6 +40,6 @@ export class GroupsService {
   }
 
   async findByIds(groupIds: any[]): Promise<Group[]> {
-    return this.groupsRepository.find({ _id: { $in: groupIds } });
+    return this.groupsRepository.findByIds(groupIds);
   }
 }

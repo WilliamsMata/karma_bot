@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import { UpdateQuery } from 'mongoose';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { KarmaRepository } from './karma.repository';
 import { UsersService } from '../users/users.service';
 import { GroupsService } from '../groups/groups.service';
@@ -48,27 +42,27 @@ export class KarmaService {
       this.usersService.findOrCreate(receiverData),
     ]);
 
-    const incGivenKarmaOrHate: UpdateQuery<Karma> =
-      incValue === 1 ? { $inc: { givenKarma: 1 } } : { $inc: { givenHate: 1 } };
+    const [, receiverKarma] = await Promise.all([
+      this.karmaRepository.updateSenderKarma(
+        senderUserDoc._id,
+        groupDoc._id,
+        incValue,
+      ),
+      this.karmaRepository.updateReceiverKarma(
+        receiverUserDoc._id,
+        groupDoc._id,
+        incValue,
+      ),
+    ]);
 
-    await this.karmaRepository.upsert(
-      { user: senderUserDoc._id, group: groupDoc._id },
-      incGivenKarmaOrHate,
-    );
-
-    const receiverKarma = await this.karmaRepository.upsert(
-      { user: receiverUserDoc._id, group: groupDoc._id },
-      {
-        $inc: { karma: incValue },
-        $push: { history: { karmaChange: incValue } as any },
-      },
-    );
-
-    if (!receiverKarma) throw new Error('Failed to update receiver karma.');
+    if (!receiverKarma) {
+      throw new Error('Failed to update receiver karma.');
+    }
 
     const receiverName = receiverUserDoc.userName
       ? `@${receiverUserDoc.userName}`
       : receiverUserDoc.firstName;
+
     return { receiverName, newKarma: receiverKarma.karma };
   }
 
@@ -86,10 +80,12 @@ export class KarmaService {
 
     const session = await this.karmaRepository.startTransaction();
     try {
-      const senderKarmaDoc = await this.karmaRepository.findOneWithSession(
-        { user: senderUserDoc._id, group: groupDoc._id },
-        session,
-      );
+      const senderKarmaDoc =
+        await this.karmaRepository.findOneByUserAndGroupForTransaction(
+          senderUserDoc._id,
+          groupDoc._id,
+          session,
+        );
 
       if (!senderKarmaDoc || senderKarmaDoc.karma < quantity) {
         throw new BadRequestException(
@@ -99,39 +95,22 @@ export class KarmaService {
         );
       }
 
-      senderKarmaDoc.karma -= quantity;
-      senderKarmaDoc.history.push({
-        karmaChange: -quantity,
-        timestamp: new Date(),
-      });
-      await senderKarmaDoc.save({ session });
-
-      const receiverKarmaDoc =
-        await this.karmaRepository.findOneAndUpdateWithSession(
-          { user: receiverUserDoc._id, group: groupDoc._id },
-          {
-            $inc: { karma: quantity },
-            $push: {
-              history: { karmaChange: quantity, timestamp: new Date() },
-            },
-          },
-          { upsert: true, new: true, session },
+      const { senderKarma, receiverKarma } =
+        await this.karmaRepository.executeKarmaTransferInTransaction(
+          senderKarmaDoc,
+          receiverUserDoc._id,
+          quantity,
+          session,
         );
-
-      if (!receiverKarmaDoc) {
-        throw new Error(
-          "Critical error: Failed to update receiver's karma document during transaction.",
-        );
-      }
 
       await session.commitTransaction();
 
-      await senderKarmaDoc.populate('user');
-      await receiverKarmaDoc.populate('user');
+      const [populatedSender, populatedReceiver] =
+        await this.karmaRepository.populateUsers([senderKarma, receiverKarma]);
 
       return {
-        senderKarma: senderKarmaDoc as unknown as PopulatedKarma,
-        receiverKarma: receiverKarmaDoc as unknown as PopulatedKarma,
+        senderKarma: populatedSender,
+        receiverKarma: populatedReceiver,
       };
     } catch (error) {
       await session.abortTransaction();
@@ -145,27 +124,16 @@ export class KarmaService {
   public async getTopKarma(groupId: number, ascending = false, limit = 10) {
     const group = await this.groupsService.getGroupInfo(groupId);
     if (!group) return [];
-    return this.karmaRepository.findWithPopulatedUser(
-      { group: group._id },
-      { karma: ascending ? 1 : -1 },
-      limit,
-    );
+    return this.karmaRepository.findTopKarma(group._id, ascending, limit);
   }
 
   public async getTopGiven(groupId: number, limit = 10) {
     const group = await this.groupsService.getGroupInfo(groupId);
     if (!group) return { topGivenKarma: [], topGivenHate: [] };
 
-    const findTopGivers = (field: 'givenKarma' | 'givenHate') =>
-      this.karmaRepository.findWithPopulatedUser(
-        { group: group._id, [field]: { $gt: 0 } },
-        { [field]: -1 },
-        limit,
-      );
-
     const [topGivenKarma, topGivenHate] = await Promise.all([
-      findTopGivers('givenKarma'),
-      findTopGivers('givenHate'),
+      this.karmaRepository.findTopGivers(group._id, 'givenKarma', limit),
+      this.karmaRepository.findTopGivers(group._id, 'givenHate', limit),
     ]);
     return { topGivenKarma, topGivenHate };
   }
@@ -174,21 +142,14 @@ export class KarmaService {
     userId: number,
     chatId: number,
   ): Promise<Karma | null> {
-    const [userDoc, groupDoc] = await Promise.all([
-      this.usersService.findOne({ userId }),
-      this.groupsService.getGroupInfo(chatId),
-    ]);
+    const userDoc = await this.usersService.findOneByUserId(userId);
+    const groupDoc = await this.groupsService.getGroupInfo(chatId);
     if (!userDoc || !groupDoc) return null;
 
-    try {
-      return await this.karmaRepository.findOne({
-        user: userDoc._id,
-        group: groupDoc._id,
-      });
-    } catch (error) {
-      if (error instanceof NotFoundException) return null;
-      throw error;
-    }
+    return this.karmaRepository.findOneByUserAndGroup(
+      userDoc._id,
+      groupDoc._id,
+    );
   }
 
   public async getTopUsersByKarmaReceived(
@@ -198,74 +159,21 @@ export class KarmaService {
   ): Promise<TopReceivedKarmaDto[]> {
     const group = await this.groupsService.getGroupInfo(groupId);
     if (!group) return [];
-
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - daysBack);
-
-    return this.karmaRepository.aggregate<TopReceivedKarmaDto>([
-      { $match: { group: group._id } },
-      { $unwind: '$history' },
-      {
-        $match: {
-          'history.timestamp': { $gte: startDate },
-          'history.karmaChange': { $gt: 0 },
-        },
-      },
-      {
-        $group: {
-          _id: '$user',
-          totalKarmaReceived: { $sum: '$history.karmaChange' },
-        },
-      },
-      { $sort: { totalKarmaReceived: -1 } },
-      { $limit: limit },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'userDetails',
-        },
-      },
-      { $unwind: '$userDetails' },
-      {
-        $project: {
-          _id: 0,
-          totalKarmaReceived: 1,
-          userId: '$userDetails.userId',
-          firstName: '$userDetails.firstName',
-          userName: '$userDetails.userName',
-        },
-      },
-    ]);
+    return this.karmaRepository.findTopReceived(group._id, daysBack, limit);
   }
 
   public async findKarmaByUserQuery(
     input: string,
     groupId: number,
   ): Promise<PopulatedKarma | null> {
-    const isUsername = input.startsWith('@');
-    const queryValue = isUsername ? input.substring(1) : input;
-    const userQuery = isUsername
-      ? { userName: new RegExp(`^${queryValue}$`, 'i') }
-      : {
-          $or: [
-            { firstName: new RegExp(`^${queryValue}$`, 'i') },
-            { lastName: new RegExp(`^${queryValue}$`, 'i') },
-          ],
-        };
-
-    const [group, user] = await Promise.all([
-      this.groupsService.getGroupInfo(groupId),
-      this.usersService.findOne(userQuery),
-    ]);
-
+    const user = await this.usersService.findOneByUsernameOrName(input);
+    const group = await this.groupsService.getGroupInfo(groupId);
     if (!group || !user) return null;
 
-    return this.karmaRepository.findOneAndPopulate(
-      { user: user._id, group: group._id },
-      'user',
-    ) as Promise<PopulatedKarma | null>;
+    return this.karmaRepository.findOneByUserAndGroupAndPopulate(
+      user._id,
+      group._id,
+    );
   }
 
   public async getTotalUsersAndGroups() {
@@ -277,14 +185,13 @@ export class KarmaService {
   }
 
   public async getGroupsForUser(userId: number): Promise<Group[]> {
-    const user = await this.usersService.findOne({ userId });
+    const user = await this.usersService.findOneByUserId(userId);
     if (!user) return [];
 
-    const karmaRecords = await this.karmaRepository.find({ user: user._id });
+    const karmaRecords = await this.karmaRepository.findByUserId(user._id);
     if (karmaRecords.length === 0) return [];
 
     const groupIds = [...new Set(karmaRecords.map((r) => r.group))];
-
     return this.groupsService.findPublicGroupsByIds(groupIds);
   }
 }
