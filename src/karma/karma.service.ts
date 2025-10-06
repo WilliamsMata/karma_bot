@@ -2,23 +2,14 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { KarmaRepository } from './karma.repository';
 import { UsersService } from '../users/users.service';
 import { GroupsService } from '../groups/groups.service';
-import { User } from '../users/schemas/user.schema';
 import { Group } from '../groups/schemas/group.schema';
+import type {
+  ITelegramChat,
+  ITelegramUser,
+} from '../telegram/telegram.interfaces';
 import { Karma } from './schemas/karma.schema';
 import { TopReceivedKarmaDto } from './dto/top-received-karma.dto';
-
-interface ITelegramUser {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-}
-interface ITelegramChat {
-  id: number;
-  title?: string;
-}
-
-type PopulatedKarma = Karma & { user: User };
+import { PopulatedKarma } from './karma.types';
 
 @Injectable()
 export class KarmaService {

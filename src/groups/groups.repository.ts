@@ -3,11 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, FilterQuery, Model, UpdateQuery } from 'mongoose';
 import { AbstractRepository } from '../database/abstract.repository';
 import { Group } from './schemas/group.schema';
-
-interface ITelegramChat {
-  id: number;
-  title?: string;
-}
+import type { ITelegramChat } from '../telegram/telegram.interfaces';
 
 @Injectable()
 export class GroupsRepository extends AbstractRepository<Group> {

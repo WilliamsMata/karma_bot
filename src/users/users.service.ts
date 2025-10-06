@@ -1,13 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { User } from './schemas/user.schema';
-
-interface ITelegramUserData {
-  id: number;
-  username?: string;
-  first_name: string;
-  last_name?: string;
-}
+import { ITelegramUser } from '../telegram/telegram.interfaces';
 
 @Injectable()
 export class UsersService {
@@ -15,7 +9,7 @@ export class UsersService {
 
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  async findOrCreate(userData: ITelegramUserData): Promise<User> {
+  async findOrCreate(userData: ITelegramUser): Promise<User> {
     const user = await this.usersRepository.findOrCreate(userData);
     if (!user) throw new Error(`Could not create or find user ${userData.id}`);
     return user;

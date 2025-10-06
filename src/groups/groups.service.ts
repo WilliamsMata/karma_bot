@@ -1,11 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { GroupsRepository } from './groups.repository';
 import { Group } from './schemas/group.schema';
-
-interface ITelegramChat {
-  id: number;
-  title?: string;
-}
+import type { ITelegramChat } from '../telegram/telegram.interfaces';
+import type { Types } from 'mongoose';
 
 @Injectable()
 export class GroupsService {
@@ -18,7 +15,7 @@ export class GroupsService {
     return group;
   }
 
-  async findPublicGroupsByIds(groupIds: any[]): Promise<Group[]> {
+  async findPublicGroupsByIds(groupIds: Types.ObjectId[]): Promise<Group[]> {
     const groupsFromDb = await this.groupsRepository.findPublicByIds(groupIds);
     const filteredGroups = groupsFromDb.filter(
       (g) => g.groupId.toString().length >= 13,
@@ -39,7 +36,7 @@ export class GroupsService {
     return this.groupsRepository.countDocuments();
   }
 
-  async findByIds(groupIds: any[]): Promise<Group[]> {
+  async findByIds(groupIds: Types.ObjectId[]): Promise<Group[]> {
     return this.groupsRepository.findByIds(groupIds);
   }
 }

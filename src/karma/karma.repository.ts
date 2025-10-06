@@ -14,8 +14,8 @@ import { AbstractRepository } from '../database/abstract.repository';
 import { User } from '../users/schemas/user.schema';
 import { Karma } from './schemas/karma.schema';
 import { TopReceivedKarmaDto } from './dto/top-received-karma.dto';
+import type { PopulatedKarma } from './karma.types';
 
-type PopulatedKarma = Karma & { user: User };
 export type KarmaDocument = Document<unknown, object, Karma> & Karma;
 
 @Injectable()

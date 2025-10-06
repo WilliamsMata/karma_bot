@@ -2,14 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 import { Model, Connection, FilterQuery, UpdateQuery } from 'mongoose';
 import { AbstractRepository } from '../database/abstract.repository';
+import { ITelegramUser } from '../telegram/telegram.interfaces';
 import { User } from './schemas/user.schema';
-
-interface ITelegramUserData {
-  id: number;
-  username?: string;
-  first_name: string;
-  last_name?: string;
-}
 
 @Injectable()
 export class UsersRepository extends AbstractRepository<User> {
@@ -22,7 +16,7 @@ export class UsersRepository extends AbstractRepository<User> {
     super(userModel, connection);
   }
 
-  async findOrCreate(userData: ITelegramUserData): Promise<User | null> {
+  async findOrCreate(userData: ITelegramUser): Promise<User | null> {
     const filterQuery: FilterQuery<User> = { userId: userData.id };
     const documentToUpsert: UpdateQuery<User> = {
       $set: {
