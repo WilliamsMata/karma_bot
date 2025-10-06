@@ -133,8 +133,10 @@ export class KarmaService {
     userId: number,
     chatId: number,
   ): Promise<Karma | null> {
-    const userDoc = await this.usersService.findOneByUserId(userId);
-    const groupDoc = await this.groupsService.getGroupInfo(chatId);
+    const [userDoc, groupDoc] = await Promise.all([
+      this.usersService.findOneByUserId(userId),
+      this.groupsService.getGroupInfo(chatId),
+    ]);
     if (!userDoc || !groupDoc) return null;
 
     return this.karmaRepository.findOneByUserAndGroup(
@@ -157,8 +159,10 @@ export class KarmaService {
     input: string,
     groupId: number,
   ): Promise<PopulatedKarma | null> {
-    const user = await this.usersService.findOneByUsernameOrName(input);
-    const group = await this.groupsService.getGroupInfo(groupId);
+    const [user, group] = await Promise.all([
+      this.usersService.findOneByUsernameOrName(input),
+      this.groupsService.getGroupInfo(groupId),
+    ]);
     if (!group || !user) return null;
 
     return this.karmaRepository.findOneByUserAndGroupAndPopulate(
