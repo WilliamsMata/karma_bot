@@ -1,6 +1,6 @@
 {
   "name": "karma_bot",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A scalable Telegram Karma Bot powered by NestJS and TypeScript. Tracks community reputation with leaderboards, history, and a REST API for its Mini App.",
   "author": "WilliamsMata",
   "license": "ISC",

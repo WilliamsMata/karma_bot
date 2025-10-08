@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-10-08
+
+### Added
+
+- **Localized Telegram Experience:** Introduced language-aware dictionaries for `/settings`, inline keyboards, and contextual messages so every interaction honors the user's preferred language.
+- **Mini App Keyboard Translations:** The "Open Mini App" button now adapts to each supported language to provide a consistent Mini App launch experience.
+
+### Changed
+
+- **Settings Command UX:** Reworked the `/settings` command flows to rely on centralized dictionaries, ensuring admins see cooldown and language menus in their own language with localized inline buttons.
+- **Shared Services Internationalization:** Updated the shared keyboard and language services to propagate user language across command handlers for a cohesive multi-language bot environment.
+
 ## [2.0.0] - 2025-07-24
 
 ### Changed
