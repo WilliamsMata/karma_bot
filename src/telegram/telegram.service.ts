@@ -20,6 +20,7 @@ import { HistoryCommandHandler } from './commands/handlers/history.command.handl
 import { GetHistoryCommandHandler } from './commands/handlers/gethistory.command.handler';
 import { TopReceivedCommandHandler } from './commands/handlers/top-received.command.handler';
 import { StartCommandHandler } from './commands/handlers/start.command.handler';
+import { SettingsCommandHandler } from './commands/handlers/settings.command.handler';
 import { KarmaMessageHandler } from './handlers/karma-message.handler';
 import { isTextCommandHandler, TextCommandContext } from './telegram.types';
 
@@ -37,6 +38,7 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
     private readonly configService: ConfigService,
     private readonly karmaMessageHandler: KarmaMessageHandler,
     startHandler: StartCommandHandler,
+    settingsHandler: SettingsCommandHandler,
     meHandler: MeCommandHandler,
     topHandler: TopCommandHandler,
     hateHandler: HateCommandHandler,
@@ -49,6 +51,7 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
     topReceivedHandler: TopReceivedCommandHandler,
   ) {
     this.registerCommand(startHandler);
+    this.registerCommand(settingsHandler);
     this.registerCommand(meHandler);
     this.registerCommand(topHandler);
     this.registerCommand(hateHandler);
@@ -66,6 +69,7 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
     this.bot = new Telegraf(botToken!);
 
     this.registerListeners();
+    this.registerHandlerCallbacks();
 
     this.bot.launch().catch((err) => {
       this.logger.error('Failed to launch the bot', err);
@@ -102,6 +106,12 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
   private registerCommand(handler: ICommandHandler<any>) {
     this.commandHandlers.set(handler.command, handler);
     this.logger.log(`Command registered: ${handler.command}`);
+  }
+
+  private registerHandlerCallbacks() {
+    for (const handler of this.commandHandlers.values()) {
+      handler.register?.(this.bot);
+    }
   }
 
   private getCommandHandler(handler: ICommandHandler<any>) {

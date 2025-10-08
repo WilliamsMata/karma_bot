@@ -5,8 +5,9 @@ import * as NodeCache from 'node-cache';
 import { KarmaService } from '../../karma/karma.service';
 import { TelegramKeyboardService } from '../shared/telegram-keyboard.service';
 import { TextCommandContext } from '../telegram.types';
+import { GroupSettingsService } from '../../groups/group-settings.service';
 
-const karmaCooldownCache = new NodeCache({ stdTTL: 60 });
+const karmaCooldownCache = new NodeCache();
 const KARMA_REGEX = /(^|\s)(\+|-)1(\s|$)/;
 
 @Injectable()
@@ -16,6 +17,7 @@ export class KarmaMessageHandler {
   constructor(
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
+    private readonly groupSettingsService: GroupSettingsService,
   ) {}
 
   public isApplicable(text: string): boolean {
@@ -23,7 +25,7 @@ export class KarmaMessageHandler {
   }
 
   public async handle(ctx: TextCommandContext): Promise<void> {
-    const validationResult = this.runPreChecks(ctx);
+    const validationResult = await this.runPreChecks(ctx);
     if (!validationResult.isValid) {
       if (validationResult.replyMessage) {
         await ctx.reply(validationResult.replyMessage);
@@ -32,7 +34,8 @@ export class KarmaMessageHandler {
     }
 
     try {
-      const { sender, receiver, chat } = validationResult.data!;
+      const { sender, receiver, chat, cooldownSeconds } =
+        validationResult.data!;
       const match = ctx.message.text.match(KARMA_REGEX)!;
       const karmaValue = match[2] === '+' ? 1 : -1;
 
@@ -43,7 +46,8 @@ export class KarmaMessageHandler {
         karmaValue,
       );
 
-      karmaCooldownCache.set(sender.id, true, 60);
+      const cacheKey = this.getCooldownCacheKey(chat.id, sender.id);
+      karmaCooldownCache.set(cacheKey, true, cooldownSeconds);
 
       await this.sendSuccessResponse(ctx, result.receiverName, result.newKarma);
     } catch (error) {
@@ -54,11 +58,16 @@ export class KarmaMessageHandler {
     }
   }
 
-  private runPreChecks(ctx: TextCommandContext): {
+  private async runPreChecks(ctx: TextCommandContext): Promise<{
     isValid: boolean;
     replyMessage?: string;
-    data?: { sender: User; receiver: User; chat: Chat };
-  } {
+    data?: {
+      sender: User;
+      receiver: User;
+      chat: Chat;
+      cooldownSeconds: number;
+    };
+  }> {
     if (!ctx.message.reply_to_message || !ctx.message.reply_to_message.from) {
       return { isValid: false };
     }
@@ -75,9 +84,14 @@ export class KarmaMessageHandler {
       return { isValid: false, replyMessage: 'You cannot give karma to bots.' };
     }
 
-    if (karmaCooldownCache.get(sender.id)) {
+    const chatId = ctx.chat.id;
+    const cooldownSeconds =
+      await this.groupSettingsService.getCooldownSeconds(chatId);
+    const cacheKey = this.getCooldownCacheKey(chatId, sender.id);
+
+    if (karmaCooldownCache.get(cacheKey)) {
       const timeLeft = Math.ceil(
-        (karmaCooldownCache.getTtl(sender.id)! - Date.now()) / 1000,
+        (karmaCooldownCache.getTtl(cacheKey)! - Date.now()) / 1000,
       );
       return {
         isValid: false,
@@ -85,7 +99,14 @@ export class KarmaMessageHandler {
       };
     }
 
-    return { isValid: true, data: { sender, receiver, chat: ctx.chat } };
+    return {
+      isValid: true,
+      data: { sender, receiver, chat: ctx.chat, cooldownSeconds },
+    };
+  }
+
+  private getCooldownCacheKey(chatId: number, userId: number): string {
+    return `${chatId}:${userId}`;
   }
 
   private async sendSuccessResponse(
