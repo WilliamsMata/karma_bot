@@ -3,10 +3,10 @@ import { FilterQuery, UpdateQuery } from 'mongoose';
 import { GroupSettings } from './schemas/group-settings.schema';
 import { GroupSettingsRepository } from './group-settings.repository';
 
-const DEFAULT_COOLDOWN_SECONDS = 60;
+export const DEFAULT_COOLDOWN_SECONDS = 60;
 export const SUPPORTED_LANGUAGES = ['en', 'es', 'ru', 'fa'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
-const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
+export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
 
 @Injectable()
 export class GroupSettingsService {
