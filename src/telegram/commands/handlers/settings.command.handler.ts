@@ -18,6 +18,9 @@ import {
 } from 'telegraf/typings/telegram-types';
 
 const COOLDOWN_OPTIONS = [30, 60, 120, 300, 600];
+const SETTINGS_MENU_ROOT = 'settings:menu:main';
+const SETTINGS_MENU_COOLDOWN = 'settings:menu:cooldown';
+const SETTINGS_CLOSE = 'settings:close';
 
 @Injectable()
 export class SettingsCommandHandler implements ITextCommandHandler {
@@ -30,6 +33,53 @@ export class SettingsCommandHandler implements ITextCommandHandler {
   ) {}
 
   register(bot: Telegraf<TelegrafContext<Update>>) {
+    bot.action(SETTINGS_MENU_COOLDOWN, async (ctx) => {
+      const chatId = ctx.chat?.id;
+      if (!chatId) {
+        await ctx.answerCbQuery('Chat not found.');
+        return;
+      }
+
+      if (!(await this.userIsAdmin(ctx.telegram, chatId, ctx.from.id))) {
+        await ctx.answerCbQuery('Only admins can change settings.', {
+          show_alert: true,
+        });
+        return;
+      }
+
+      const currentCooldown =
+        await this.groupSettingsService.getCooldownSeconds(chatId);
+
+      try {
+        await ctx.editMessageText(
+          this.buildCooldownMenuMessage(currentCooldown),
+          this.buildEditExtra(this.buildCooldownKeyboard()),
+        );
+      } catch (error) {
+        this.logger.error('Failed to render cooldown menu', error);
+      }
+
+      await ctx.answerCbQuery();
+    });
+
+    bot.action(SETTINGS_MENU_ROOT, async (ctx) => {
+      const chatId = ctx.chat?.id;
+      if (!chatId) {
+        await ctx.answerCbQuery('Chat not found.');
+        return;
+      }
+
+      if (!(await this.userIsAdmin(ctx.telegram, chatId, ctx.from.id))) {
+        await ctx.answerCbQuery('Only admins can change settings.', {
+          show_alert: true,
+        });
+        return;
+      }
+
+      await this.renderMainMenu(ctx, chatId);
+      await ctx.answerCbQuery();
+    });
+
     bot.action(/^settings:cooldown:(\d+)$/, async (ctx) => {
       const requestedCooldown = Number(ctx.match[1]);
       const chatId = ctx.chat?.id;
@@ -56,18 +106,23 @@ export class SettingsCommandHandler implements ITextCommandHandler {
       );
 
       try {
-        await ctx.editMessageText(
-          this.buildSettingsMessage(requestedCooldown),
-          this.buildEditExtra(),
-        );
+        await this.renderMainMenu(ctx, chatId);
       } catch (error) {
         this.logger.error('Failed to edit settings message', error);
       }
     });
 
-    bot.action('settings:close', async (ctx) => {
-      await ctx.editMessageReplyMarkup(undefined).catch(() => undefined);
-      await ctx.answerCbQuery();
+    bot.action(SETTINGS_CLOSE, async (ctx) => {
+      try {
+        await ctx.editMessageText(
+          '✅ Settings updated. Use /settings to open this menu again.',
+          { parse_mode: 'Markdown' },
+        );
+      } catch (error) {
+        this.logger.warn('Failed to close settings message cleanly', error);
+        await ctx.editMessageReplyMarkup(undefined).catch(() => undefined);
+      }
+      await ctx.answerCbQuery('Settings closed.');
     });
   }
 
@@ -97,8 +152,8 @@ export class SettingsCommandHandler implements ITextCommandHandler {
     );
 
     await ctx.reply(
-      this.buildSettingsMessage(settings),
-      this.buildReplyExtra(),
+      this.buildMainMenuMessage(settings),
+      this.buildReplyExtra(this.buildMainMenuKeyboard()),
     );
   }
 
@@ -121,15 +176,30 @@ export class SettingsCommandHandler implements ITextCommandHandler {
     return member.status === 'administrator' || member.status === 'creator';
   }
 
-  private buildSettingsMessage(cooldownSeconds: number): string {
+  private buildMainMenuMessage(cooldownSeconds: number): string {
     return (
       '⚙️ *Group Settings*\n\n' +
       `Current cooldown: *${cooldownSeconds} seconds*.\n\n` +
+      'Choose a configuration to modify:'
+    );
+  }
+
+  private buildCooldownMenuMessage(currentCooldown: number): string {
+    return (
+      '⚙️ *Group Settings*\n\n' +
+      `Current cooldown: *${currentCooldown} seconds*.\n\n` +
       'Choose a new cooldown duration:'
     );
   }
 
-  private buildInlineKeyboard(): InlineKeyboardMarkup {
+  private buildMainMenuKeyboard(): InlineKeyboardMarkup {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('⏱️ Cooldown', SETTINGS_MENU_COOLDOWN)],
+      [Markup.button.callback('✅ All set', SETTINGS_CLOSE)],
+    ]).reply_markup;
+  }
+
+  private buildCooldownKeyboard(): InlineKeyboardMarkup {
     const optionButtons = COOLDOWN_OPTIONS.map((seconds) =>
       Markup.button.callback(`${seconds}s`, `settings:cooldown:${seconds}`),
     );
@@ -139,20 +209,36 @@ export class SettingsCommandHandler implements ITextCommandHandler {
       inlineKeyboard.push(optionButtons.slice(i, i + 3));
     }
 
-    inlineKeyboard.push([Markup.button.callback('Close', 'settings:close')]);
+    inlineKeyboard.push([
+      Markup.button.callback('⬅️ Back', SETTINGS_MENU_ROOT),
+      Markup.button.callback('✅ All set', SETTINGS_CLOSE),
+    ]);
 
     return Markup.inlineKeyboard(inlineKeyboard).reply_markup;
   }
 
-  private buildReplyExtra(): ExtraReplyMessage {
+  private buildReplyExtra(keyboard: InlineKeyboardMarkup): ExtraReplyMessage {
     const extra: ExtraReplyMessage = { parse_mode: 'Markdown' };
-    extra.reply_markup = this.buildInlineKeyboard();
+    extra.reply_markup = keyboard;
     return extra;
   }
 
-  private buildEditExtra(): ExtraEditMessageText {
+  private buildEditExtra(keyboard: InlineKeyboardMarkup): ExtraEditMessageText {
     const extra: ExtraEditMessageText = { parse_mode: 'Markdown' };
-    extra.reply_markup = this.buildInlineKeyboard();
+    extra.reply_markup = keyboard;
     return extra;
+  }
+
+  private async renderMainMenu(
+    ctx: TelegrafContext<Update>,
+    chatId: number,
+  ): Promise<void> {
+    const currentCooldown =
+      await this.groupSettingsService.getCooldownSeconds(chatId);
+
+    await ctx.editMessageText(
+      this.buildMainMenuMessage(currentCooldown),
+      this.buildEditExtra(this.buildMainMenuKeyboard()),
+    );
   }
 }
