@@ -7,6 +7,13 @@ import {
   TextCommandContext,
 } from 'src/telegram/telegram.types';
 import { formatUsernameForDisplay } from '../command.helpers';
+import { TelegramLanguageService } from '../../shared/telegram-language.service';
+import {
+  buildMostGiversEmptyNegative,
+  buildMostGiversEmptyPositive,
+  buildMostGiversNegativeMessage,
+  buildMostGiversPositiveMessage,
+} from '../../dictionary/mostgivers.dictionary';
 
 @Injectable()
 export class MostGiversCommandHandler implements ITextCommandHandler {
@@ -15,45 +22,52 @@ export class MostGiversCommandHandler implements ITextCommandHandler {
   constructor(
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
+    private readonly languageService: TelegramLanguageService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
+    const language = await this.languageService.resolveLanguage(ctx.chat);
     const { topGivenKarma, topGivenHate } = await this.karmaService.getTopGiven(
       ctx.chat.id,
       10,
     );
-    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(
+      ctx.chat,
+      language,
+    );
 
     const extra: ExtraReplyMessage = {};
     if (keyboard) {
       extra.reply_markup = keyboard.reply_markup;
     }
 
-    let message = '';
-    if (topGivenKarma.length > 0) {
-      message += '♥ Top 10 Karma Givers:\n\n';
-      topGivenKarma.forEach((userKarma, index) => {
-        const name = userKarma.user.userName
-          ? `@${userKarma.user.userName}`
-          : userKarma.user.firstName;
-        message += `${index + 1}. ${name} has given ${userKarma.givenKarma} karma\n`;
-      });
-    } else {
-      message += '♥ No users have given positive karma yet.\n';
-    }
+    const sections: string[] = [];
 
-    message += '\n'; // Separador
+    if (topGivenKarma.length > 0) {
+      const entries = topGivenKarma.map((userKarma, index) => ({
+        position: index + 1,
+        name: userKarma.user.userName
+          ? `@${userKarma.user.userName}`
+          : formatUsernameForDisplay(userKarma.user),
+        value: userKarma.givenKarma ?? 0,
+      }));
+      sections.push(buildMostGiversPositiveMessage(language, entries));
+    } else {
+      sections.push(buildMostGiversEmptyPositive(language));
+    }
 
     if (topGivenHate.length > 0) {
-      message += '😠 Top 10 Hate Givers:\n\n';
-      topGivenHate.forEach((userKarma, index) => {
-        const name = formatUsernameForDisplay(userKarma.user);
-        message += `${index + 1}. ${name} has given ${userKarma.givenHate} hate\n`;
-      });
+      const entries = topGivenHate.map((userKarma, index) => ({
+        position: index + 1,
+        name: formatUsernameForDisplay(userKarma.user),
+        value: userKarma.givenHate ?? 0,
+      }));
+      sections.push(buildMostGiversNegativeMessage(language, entries));
     } else {
-      message += '😠 No users have given negative karma (hate) yet.\n';
+      sections.push(buildMostGiversEmptyNegative(language));
     }
 
-    await ctx.reply(message.trim(), extra);
+    const message = sections.join('\n\n').trim();
+    await ctx.reply(message, extra);
   }
 }

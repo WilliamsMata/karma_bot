@@ -7,6 +7,11 @@ import {
   TextCommandContext,
 } from 'src/telegram/telegram.types';
 import { formatUsernameForDisplay } from '../command.helpers';
+import { TelegramLanguageService } from '../../shared/telegram-language.service';
+import {
+  buildTopEmptyMessage,
+  buildTopMessage,
+} from '../../dictionary/top.dictionary';
 
 @Injectable()
 export class TopCommandHandler implements ITextCommandHandler {
@@ -15,15 +20,20 @@ export class TopCommandHandler implements ITextCommandHandler {
   constructor(
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
+    private readonly languageService: TelegramLanguageService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
+    const language = await this.languageService.resolveLanguage(ctx.chat);
     const topUsers = await this.karmaService.getTopKarma(
       ctx.chat.id,
       false,
       10,
     );
-    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(
+      ctx.chat,
+      language,
+    );
 
     const extra: ExtraReplyMessage = {};
     if (keyboard) {
@@ -31,15 +41,17 @@ export class TopCommandHandler implements ITextCommandHandler {
     }
 
     if (topUsers.length === 0) {
-      await ctx.reply('No karma data available yet for this group.', extra);
+      await ctx.reply(buildTopEmptyMessage(language), extra);
       return;
     }
 
-    let message = '🏆 Top 10 Karma Users:\n\n';
-    topUsers.forEach((userKarma, index) => {
-      const name = formatUsernameForDisplay(userKarma.user);
-      message += `${index + 1}. ${name} has ${userKarma.karma} karma\n`;
-    });
+    const entries = topUsers.map((userKarma, index) => ({
+      position: index + 1,
+      name: formatUsernameForDisplay(userKarma.user),
+      karma: userKarma.karma ?? 0,
+    }));
+
+    const message = buildTopMessage(language, entries);
 
     await ctx.reply(message, extra);
   }

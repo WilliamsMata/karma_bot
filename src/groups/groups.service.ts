@@ -3,15 +3,22 @@ import { GroupsRepository } from './groups.repository';
 import { Group } from './schemas/group.schema';
 import type { ITelegramChat } from '../telegram/telegram.interfaces';
 import type { Types } from 'mongoose';
+import { GroupSettingsService } from './group-settings.service';
+import type { GroupSettings } from './schemas/group-settings.schema';
+import type { SupportedLanguage } from './group-settings.service';
 
 @Injectable()
 export class GroupsService {
-  constructor(private readonly groupsRepository: GroupsRepository) {}
+  constructor(
+    private readonly groupsRepository: GroupsRepository,
+    private readonly groupSettingsService: GroupSettingsService,
+  ) {}
 
   async findOrCreate(chatData: ITelegramChat): Promise<Group> {
     const group = await this.groupsRepository.findOrCreate(chatData);
     if (!group)
       throw new Error(`Could not find or create group ${chatData.id}`);
+    await this.groupSettingsService.ensureDefaults(group.groupId);
     return group;
   }
 
@@ -24,7 +31,11 @@ export class GroupsService {
   }
 
   async getGroupInfo(groupId: number): Promise<Group | null> {
-    return this.groupsRepository.findOneByGroupId(groupId);
+    const group = await this.groupsRepository.findOneByGroupId(groupId);
+    if (group) {
+      await this.groupSettingsService.ensureDefaults(group.groupId);
+    }
+    return group;
   }
 
   async getDistinctGroupIds(): Promise<number[]> {
@@ -38,5 +49,20 @@ export class GroupsService {
 
   async findByIds(groupIds: Types.ObjectId[]): Promise<Group[]> {
     return this.groupsRepository.findByIds(groupIds);
+  }
+
+  async getGroupSettings(groupId: number): Promise<GroupSettings> {
+    return this.groupSettingsService.ensureDefaults(groupId);
+  }
+
+  async getGroupLanguage(groupId: number): Promise<SupportedLanguage> {
+    return this.groupSettingsService.getLanguage(groupId);
+  }
+
+  async updateGroupLanguage(
+    groupId: number,
+    language: SupportedLanguage,
+  ): Promise<GroupSettings> {
+    return this.groupSettingsService.updateLanguage(groupId, language);
   }
 }

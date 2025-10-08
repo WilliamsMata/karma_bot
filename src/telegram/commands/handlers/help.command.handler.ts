@@ -2,6 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
+  DEFAULT_COOLDOWN_SECONDS,
+  GroupSettingsService,
+} from '../../../groups/group-settings.service';
+import { buildHelpMessage } from '../../dictionary/help.dictionary';
+import { TelegramLanguageService } from '../../shared/telegram-language.service';
+import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
@@ -10,10 +16,23 @@ import {
 export class HelpCommandHandler implements ITextCommandHandler {
   command = 'help';
 
-  constructor(private readonly keyboardService: TelegramKeyboardService) {}
+  constructor(
+    private readonly keyboardService: TelegramKeyboardService,
+    private readonly groupSettingsService: GroupSettingsService,
+    private readonly languageService: TelegramLanguageService,
+  ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
-    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+    const chat = ctx.chat;
+    let language = this.languageService.resolveLanguageFromUser(ctx.from);
+    if (chat && (chat.type === 'group' || chat.type === 'supergroup')) {
+      language = await this.languageService.resolveLanguage(chat);
+    }
+
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(
+      chat,
+      language,
+    );
 
     const extra: ExtraReplyMessage = {};
     extra.parse_mode = 'Markdown';
@@ -21,36 +40,18 @@ export class HelpCommandHandler implements ITextCommandHandler {
       extra.reply_markup = keyboard.reply_markup;
     }
 
-    const helpMessage = `
-Hello! I'm the Karma Bot. Here's how you can interact with me:
+    let cooldownSeconds = DEFAULT_COOLDOWN_SECONDS;
+    const chatId = chat?.id;
+    if (
+      chat &&
+      (chat.type === 'group' || chat.type === 'supergroup') &&
+      typeof chatId === 'number'
+    ) {
+      cooldownSeconds =
+        await this.groupSettingsService.getCooldownSeconds(chatId);
+    }
 
-*Basic Karma:*
-  • Reply to a message with \`+1\` to give karma.
-  • Reply to a message with \`-1\` to give hate (negative karma).
-  *(Cooldown: 1 minute between giving karma/hate)*
-
-*Check Karma:*
-  • \`/me\`: Shows your current karma, given karma, and given hate.
-  • \`/getkarma <name or @username>\`: Shows the karma details of a specific user.
-
-*Leaderboards:*
-  • \`/top\`: Top 10 users with the most karma.
-  • \`/hate\`: Top 10 users with the least karma (most hated).
-  • \`/mostgivers\`: Top 10 users who gave the most karma and hate.
-  • \`/today\`: Top 10 users who received the most karma in the last 24 hours.
-  • \`/month\`: Top 10 users who received the most karma in the last 30 days.
-  • \`/year\`: Top 10 users who received the most karma in the last 365 days.
-
-*History:*
-  • \`/history\`: Shows your last 10 karma changes.
-  • \`/gethistory <name or @username>\`: Shows the last 10 karma changes for a specific user.
-
-*Transfer Karma:*
-  • \`/send <amount>\`: Reply to a user's message to send them a specific amount of your karma. (e.g., \`/send 5\`)
-
-*Other:*
-  • \`/help\`: Shows this help message.
-    `;
-    await ctx.reply(helpMessage.trim(), extra);
+    const helpMessage = buildHelpMessage(language, { cooldownSeconds });
+    await ctx.reply(helpMessage, extra);
   }
 }

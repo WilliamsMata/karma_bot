@@ -6,6 +6,8 @@ import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
+import { buildMeKarmaMessage } from '../../dictionary/me.dictionary';
+import { TelegramLanguageService } from '../../shared/telegram-language.service';
 
 @Injectable()
 export class MeCommandHandler implements ITextCommandHandler {
@@ -15,11 +17,13 @@ export class MeCommandHandler implements ITextCommandHandler {
   constructor(
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
+    private readonly languageService: TelegramLanguageService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
     const user = ctx.from;
     const chat = ctx.chat;
+    const language = await this.languageService.resolveLanguage(ctx.chat);
 
     try {
       const karmaDoc = await this.karmaService.getKarmaForUser(
@@ -28,24 +32,31 @@ export class MeCommandHandler implements ITextCommandHandler {
       );
       const userName = user.username ? `@${user.username}` : user.first_name;
 
-      const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+      const keyboard = this.keyboardService.getGroupWebAppKeyboard(
+        ctx.chat,
+        language,
+      );
 
       const extra: ExtraReplyMessage = {};
       if (keyboard) {
         extra.reply_markup = keyboard.reply_markup;
       }
 
-      let message: string;
-      if (
-        !karmaDoc ||
-        (karmaDoc.karma === 0 &&
-          karmaDoc.givenKarma === 0 &&
-          karmaDoc.givenHate === 0)
-      ) {
-        message = `🙋 Hi ${userName}, your karma is 0 in this group.\n\n♥ Given karma: 0.\n😠 Given hate: 0.`;
-      } else {
-        message = `🙋 Hi ${userName}, your karma is ${karmaDoc.karma || 0} in this group.\n\n♥ Given karma: ${karmaDoc.givenKarma || 0}.\n😠 Given hate: ${karmaDoc.givenHate || 0}.`;
-      }
+      const karma = karmaDoc?.karma ?? 0;
+      const givenKarma = karmaDoc?.givenKarma ?? 0;
+      const givenHate = karmaDoc?.givenHate ?? 0;
+
+      const hasActivity = Boolean(
+        karmaDoc && (karma !== 0 || givenKarma !== 0 || givenHate !== 0),
+      );
+
+      const message = buildMeKarmaMessage(language, {
+        displayName: userName,
+        karma,
+        givenKarma,
+        givenHate,
+        hasActivity,
+      });
 
       await ctx.reply(message, extra);
     } catch (error) {

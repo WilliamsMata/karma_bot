@@ -5,8 +5,18 @@ import * as NodeCache from 'node-cache';
 import { KarmaService } from '../../karma/karma.service';
 import { TelegramKeyboardService } from '../shared/telegram-keyboard.service';
 import { TextCommandContext } from '../telegram.types';
+import {
+  GroupSettingsService,
+  SupportedLanguage,
+} from '../../groups/group-settings.service';
+import {
+  buildKarmaBotWarning,
+  buildKarmaCooldownMessage,
+  buildKarmaSuccessMessage,
+} from '../dictionary/karma-message.dictionary';
+import { TelegramLanguageService } from '../shared/telegram-language.service';
 
-const karmaCooldownCache = new NodeCache({ stdTTL: 60 });
+const karmaCooldownCache = new NodeCache();
 const KARMA_REGEX = /(^|\s)(\+|-)1(\s|$)/;
 
 @Injectable()
@@ -16,6 +26,8 @@ export class KarmaMessageHandler {
   constructor(
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
+    private readonly groupSettingsService: GroupSettingsService,
+    private readonly languageService: TelegramLanguageService,
   ) {}
 
   public isApplicable(text: string): boolean {
@@ -23,7 +35,9 @@ export class KarmaMessageHandler {
   }
 
   public async handle(ctx: TextCommandContext): Promise<void> {
-    const validationResult = this.runPreChecks(ctx);
+    const language = await this.languageService.resolveLanguage(ctx.chat);
+
+    const validationResult = await this.runPreChecks(ctx, language);
     if (!validationResult.isValid) {
       if (validationResult.replyMessage) {
         await ctx.reply(validationResult.replyMessage);
@@ -32,7 +46,8 @@ export class KarmaMessageHandler {
     }
 
     try {
-      const { sender, receiver, chat } = validationResult.data!;
+      const { sender, receiver, chat, cooldownSeconds } =
+        validationResult.data!;
       const match = ctx.message.text.match(KARMA_REGEX)!;
       const karmaValue = match[2] === '+' ? 1 : -1;
 
@@ -43,9 +58,15 @@ export class KarmaMessageHandler {
         karmaValue,
       );
 
-      karmaCooldownCache.set(sender.id, true, 60);
+      const cacheKey = this.getCooldownCacheKey(chat.id, sender.id);
+      karmaCooldownCache.set(cacheKey, true, cooldownSeconds);
 
-      await this.sendSuccessResponse(ctx, result.receiverName, result.newKarma);
+      await this.sendSuccessResponse(
+        ctx,
+        language,
+        result.receiverName,
+        result.newKarma,
+      );
     } catch (error) {
       this.logger.error(
         `Error in karma update flow for message ${ctx.message.message_id}`,
@@ -54,11 +75,19 @@ export class KarmaMessageHandler {
     }
   }
 
-  private runPreChecks(ctx: TextCommandContext): {
+  private async runPreChecks(
+    ctx: TextCommandContext,
+    language: SupportedLanguage,
+  ): Promise<{
     isValid: boolean;
     replyMessage?: string;
-    data?: { sender: User; receiver: User; chat: Chat };
-  } {
+    data?: {
+      sender: User;
+      receiver: User;
+      chat: Chat;
+      cooldownSeconds: number;
+    };
+  }> {
     if (!ctx.message.reply_to_message || !ctx.message.reply_to_message.from) {
       return { isValid: false };
     }
@@ -72,28 +101,51 @@ export class KarmaMessageHandler {
     }
 
     if (receiver.is_bot) {
-      return { isValid: false, replyMessage: 'You cannot give karma to bots.' };
-    }
-
-    if (karmaCooldownCache.get(sender.id)) {
-      const timeLeft = Math.ceil(
-        (karmaCooldownCache.getTtl(sender.id)! - Date.now()) / 1000,
-      );
       return {
         isValid: false,
-        replyMessage: `Please wait ${timeLeft} seconds before giving karma again.`,
+        replyMessage: buildKarmaBotWarning(language),
       };
     }
 
-    return { isValid: true, data: { sender, receiver, chat: ctx.chat } };
+    const chatId = ctx.chat.id;
+    const cooldownSeconds =
+      await this.groupSettingsService.getCooldownSeconds(chatId);
+    const cacheKey = this.getCooldownCacheKey(chatId, sender.id);
+
+    if (karmaCooldownCache.get(cacheKey)) {
+      const ttl = karmaCooldownCache.getTtl(cacheKey);
+      const secondsLeft = Math.max(
+        1,
+        ttl ? Math.ceil((ttl - Date.now()) / 1000) : cooldownSeconds,
+      );
+      return {
+        isValid: false,
+        replyMessage: buildKarmaCooldownMessage(language, {
+          secondsLeft,
+        }),
+      };
+    }
+
+    return {
+      isValid: true,
+      data: { sender, receiver, chat: ctx.chat, cooldownSeconds },
+    };
+  }
+
+  private getCooldownCacheKey(chatId: number, userId: number): string {
+    return `${chatId}:${userId}`;
   }
 
   private async sendSuccessResponse(
     ctx: TextCommandContext,
+    language: SupportedLanguage,
     receiverName: string,
     newKarma: number,
   ): Promise<void> {
-    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(
+      ctx.chat,
+      language,
+    );
 
     const extra: ExtraReplyMessage = {
       reply_parameters: { message_id: ctx.message.message_id },
@@ -103,7 +155,10 @@ export class KarmaMessageHandler {
       extra.reply_markup = keyboard.reply_markup;
     }
 
-    const message = `${receiverName} now has ${newKarma} karma.`;
+    const message = buildKarmaSuccessMessage(language, {
+      receiverName,
+      newKarma,
+    });
 
     await ctx.telegram.sendMessage(ctx.chat.id, message, extra);
   }

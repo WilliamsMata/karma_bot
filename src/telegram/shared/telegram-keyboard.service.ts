@@ -2,6 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Markup } from 'telegraf';
 import { InlineKeyboardMarkup, Chat } from 'telegraf/types';
+import {
+  DEFAULT_LANGUAGE,
+  SupportedLanguage,
+} from '../../groups/group-settings.service';
+import { buildTelegramKeyboardOpenMiniAppButtonLabel } from '../dictionary/telegram-keyboard.dictionary';
 
 @Injectable()
 export class TelegramKeyboardService {
@@ -19,12 +24,15 @@ export class TelegramKeyboardService {
 
   getGroupWebAppKeyboard(
     chat: Chat,
+    language: SupportedLanguage = DEFAULT_LANGUAGE,
   ): Markup.Markup<InlineKeyboardMarkup> | undefined {
     if (chat.type !== 'group' && chat.type !== 'supergroup') {
       return undefined;
     }
 
     const url = `https://t.me/${this.botUsername}?startapp=chatId${chat.id}`;
-    return Markup.inlineKeyboard([Markup.button.url('Open Mini App', url)]);
+    const buttonLabel = buildTelegramKeyboardOpenMiniAppButtonLabel(language);
+
+    return Markup.inlineKeyboard([Markup.button.url(buttonLabel, url)]);
   }
 }
