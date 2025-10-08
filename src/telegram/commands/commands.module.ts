@@ -10,6 +10,7 @@ import { SendCommandHandler } from './handlers/send.command.handler';
 import { HistoryCommandHandler } from './handlers/history.command.handler';
 import { GetHistoryCommandHandler } from './handlers/gethistory.command.handler';
 import { TopReceivedCommandHandler } from './handlers/top-received.command.handler';
+import { StartCommandHandler } from './handlers/start.command.handler';
 import { TelegramSharedModule } from '../shared/telegram-shared.module';
 
 export const commandHandlers = [
@@ -23,6 +24,7 @@ export const commandHandlers = [
   HistoryCommandHandler,
   GetHistoryCommandHandler,
   TopReceivedCommandHandler,
+  StartCommandHandler,
 ];
 
 @Module({

@@ -19,6 +19,7 @@ import { SendCommandHandler } from './commands/handlers/send.command.handler';
 import { HistoryCommandHandler } from './commands/handlers/history.command.handler';
 import { GetHistoryCommandHandler } from './commands/handlers/gethistory.command.handler';
 import { TopReceivedCommandHandler } from './commands/handlers/top-received.command.handler';
+import { StartCommandHandler } from './commands/handlers/start.command.handler';
 import { KarmaMessageHandler } from './handlers/karma-message.handler';
 import { isTextCommandHandler, TextCommandContext } from './telegram.types';
 
@@ -35,6 +36,7 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
   constructor(
     private readonly configService: ConfigService,
     private readonly karmaMessageHandler: KarmaMessageHandler,
+    startHandler: StartCommandHandler,
     meHandler: MeCommandHandler,
     topHandler: TopCommandHandler,
     hateHandler: HateCommandHandler,
@@ -46,6 +48,7 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
     getHistoryHandler: GetHistoryCommandHandler,
     topReceivedHandler: TopReceivedCommandHandler,
   ) {
+    this.registerCommand(startHandler);
     this.registerCommand(meHandler);
     this.registerCommand(topHandler);
     this.registerCommand(hateHandler);
