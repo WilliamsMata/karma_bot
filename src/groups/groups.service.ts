@@ -5,6 +5,7 @@ import type { ITelegramChat } from '../telegram/telegram.interfaces';
 import type { Types } from 'mongoose';
 import { GroupSettingsService } from './group-settings.service';
 import type { GroupSettings } from './schemas/group-settings.schema';
+import type { SupportedLanguage } from './group-settings.service';
 
 @Injectable()
 export class GroupsService {
@@ -52,5 +53,16 @@ export class GroupsService {
 
   async getGroupSettings(groupId: number): Promise<GroupSettings> {
     return this.groupSettingsService.ensureDefaults(groupId);
+  }
+
+  async getGroupLanguage(groupId: number): Promise<SupportedLanguage> {
+    return this.groupSettingsService.getLanguage(groupId);
+  }
+
+  async updateGroupLanguage(
+    groupId: number,
+    language: SupportedLanguage,
+  ): Promise<GroupSettings> {
+    return this.groupSettingsService.updateLanguage(groupId, language);
   }
 }

@@ -7,7 +7,11 @@ import {
 } from 'telegraf/types';
 import type { Update } from 'telegraf/types';
 import { GroupsService } from '../../../groups/groups.service';
-import { GroupSettingsService } from '../../../groups/group-settings.service';
+import {
+  GroupSettingsService,
+  SUPPORTED_LANGUAGES,
+  SupportedLanguage,
+} from '../../../groups/group-settings.service';
 import {
   ITextCommandHandler,
   TextCommandContext,
@@ -20,7 +24,14 @@ import {
 const COOLDOWN_OPTIONS = [30, 60, 120, 300, 600];
 const SETTINGS_MENU_ROOT = 'settings:menu:main';
 const SETTINGS_MENU_COOLDOWN = 'settings:menu:cooldown';
+const SETTINGS_MENU_LANGUAGE = 'settings:menu:language';
 const SETTINGS_CLOSE = 'settings:close';
+const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
+  en: 'English',
+  es: 'Español',
+  ru: 'Русский',
+  fa: 'فارسی',
+};
 
 @Injectable()
 export class SettingsCommandHandler implements ITextCommandHandler {
@@ -80,6 +91,35 @@ export class SettingsCommandHandler implements ITextCommandHandler {
       await ctx.answerCbQuery();
     });
 
+    bot.action(SETTINGS_MENU_LANGUAGE, async (ctx) => {
+      const chatId = ctx.chat?.id;
+      if (!chatId) {
+        await ctx.answerCbQuery('Chat not found.');
+        return;
+      }
+
+      if (!(await this.userIsAdmin(ctx.telegram, chatId, ctx.from.id))) {
+        await ctx.answerCbQuery('Only admins can change settings.', {
+          show_alert: true,
+        });
+        return;
+      }
+
+      const currentLanguage =
+        await this.groupSettingsService.getLanguage(chatId);
+
+      try {
+        await ctx.editMessageText(
+          this.buildLanguageMenuMessage(currentLanguage),
+          this.buildEditExtra(this.buildLanguageKeyboard(currentLanguage)),
+        );
+      } catch (error) {
+        this.logger.error('Failed to render language menu', error);
+      }
+
+      await ctx.answerCbQuery();
+    });
+
     bot.action(/^settings:cooldown:(\d+)$/, async (ctx) => {
       const requestedCooldown = Number(ctx.match[1]);
       const chatId = ctx.chat?.id;
@@ -103,6 +143,42 @@ export class SettingsCommandHandler implements ITextCommandHandler {
 
       await ctx.answerCbQuery(
         `Cooldown updated to ${requestedCooldown} seconds.`,
+      );
+
+      try {
+        await this.renderMainMenu(ctx, chatId);
+      } catch (error) {
+        this.logger.error('Failed to edit settings message', error);
+      }
+    });
+
+    bot.action(/^settings:language:([a-z]{2})$/, async (ctx) => {
+      const languageCode = ctx.match[1] as SupportedLanguage;
+      const chatId = ctx.chat?.id;
+
+      if (!chatId) {
+        await ctx.answerCbQuery('Chat not found.');
+        return;
+      }
+
+      if (!(await this.userIsAdmin(ctx.telegram, chatId, ctx.from.id))) {
+        await ctx.answerCbQuery('Only admins can change settings.', {
+          show_alert: true,
+        });
+        return;
+      }
+
+      if (!SUPPORTED_LANGUAGES.includes(languageCode)) {
+        await ctx.answerCbQuery('Unsupported language selected.', {
+          show_alert: true,
+        });
+        return;
+      }
+
+      await this.groupSettingsService.updateLanguage(chatId, languageCode);
+
+      await ctx.answerCbQuery(
+        `Language updated to ${LANGUAGE_LABELS[languageCode]}.`,
       );
 
       try {
@@ -147,13 +223,14 @@ export class SettingsCommandHandler implements ITextCommandHandler {
       title: ctx.chat.title ?? `Group ${ctx.chat.id}`,
     });
 
-    const settings = await this.groupSettingsService.getCooldownSeconds(
-      ctx.chat.id,
-    );
+    const [cooldown, language] = await Promise.all([
+      this.groupSettingsService.getCooldownSeconds(ctx.chat.id),
+      this.groupSettingsService.getLanguage(ctx.chat.id),
+    ]);
 
     await ctx.reply(
-      this.buildMainMenuMessage(settings),
-      this.buildReplyExtra(this.buildMainMenuKeyboard()),
+      this.buildMainMenuMessage(cooldown, language),
+      this.buildReplyExtra(this.buildMainMenuKeyboard(language)),
     );
   }
 
@@ -176,10 +253,14 @@ export class SettingsCommandHandler implements ITextCommandHandler {
     return member.status === 'administrator' || member.status === 'creator';
   }
 
-  private buildMainMenuMessage(cooldownSeconds: number): string {
+  private buildMainMenuMessage(
+    cooldownSeconds: number,
+    language: SupportedLanguage,
+  ): string {
     return (
       '⚙️ *Group Settings*\n\n' +
       `Current cooldown: *${cooldownSeconds} seconds*.\n\n` +
+      `Language: *${LANGUAGE_LABELS[language]}*.\n\n` +
       'Choose a configuration to modify:'
     );
   }
@@ -192,9 +273,25 @@ export class SettingsCommandHandler implements ITextCommandHandler {
     );
   }
 
-  private buildMainMenuKeyboard(): InlineKeyboardMarkup {
+  private buildLanguageMenuMessage(currentLanguage: SupportedLanguage): string {
+    return (
+      '⚙️ *Group Settings*\n\n' +
+      `Current language: *${LANGUAGE_LABELS[currentLanguage]}*.\n\n` +
+      'Choose a new language:'
+    );
+  }
+
+  private buildMainMenuKeyboard(
+    language: SupportedLanguage,
+  ): InlineKeyboardMarkup {
     return Markup.inlineKeyboard([
       [Markup.button.callback('⏱️ Cooldown', SETTINGS_MENU_COOLDOWN)],
+      [
+        Markup.button.callback(
+          `🌐 Language (${LANGUAGE_LABELS[language]})`,
+          SETTINGS_MENU_LANGUAGE,
+        ),
+      ],
       [Markup.button.callback('✅ All set', SETTINGS_CLOSE)],
     ]).reply_markup;
   }
@@ -207,6 +304,29 @@ export class SettingsCommandHandler implements ITextCommandHandler {
     const inlineKeyboard: InlineKeyboardButton[][] = [];
     for (let i = 0; i < optionButtons.length; i += 3) {
       inlineKeyboard.push(optionButtons.slice(i, i + 3));
+    }
+
+    inlineKeyboard.push([
+      Markup.button.callback('⬅️ Back', SETTINGS_MENU_ROOT),
+      Markup.button.callback('✅ All set', SETTINGS_CLOSE),
+    ]);
+
+    return Markup.inlineKeyboard(inlineKeyboard).reply_markup;
+  }
+
+  private buildLanguageKeyboard(
+    currentLanguage: SupportedLanguage,
+  ): InlineKeyboardMarkup {
+    const optionButtons = SUPPORTED_LANGUAGES.map((language) =>
+      Markup.button.callback(
+        `${language === currentLanguage ? '• ' : ''}${LANGUAGE_LABELS[language]}`,
+        `settings:language:${language}`,
+      ),
+    );
+
+    const inlineKeyboard: InlineKeyboardButton[][] = [];
+    for (let i = 0; i < optionButtons.length; i += 2) {
+      inlineKeyboard.push(optionButtons.slice(i, i + 2));
     }
 
     inlineKeyboard.push([
@@ -233,12 +353,14 @@ export class SettingsCommandHandler implements ITextCommandHandler {
     ctx: TelegrafContext<Update>,
     chatId: number,
   ): Promise<void> {
-    const currentCooldown =
-      await this.groupSettingsService.getCooldownSeconds(chatId);
+    const [cooldown, language] = await Promise.all([
+      this.groupSettingsService.getCooldownSeconds(chatId),
+      this.groupSettingsService.getLanguage(chatId),
+    ]);
 
     await ctx.editMessageText(
-      this.buildMainMenuMessage(currentCooldown),
-      this.buildEditExtra(this.buildMainMenuKeyboard()),
+      this.buildMainMenuMessage(cooldown, language),
+      this.buildEditExtra(this.buildMainMenuKeyboard(language)),
     );
   }
 }
