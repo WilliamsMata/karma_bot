@@ -5,7 +5,16 @@ import * as NodeCache from 'node-cache';
 import { KarmaService } from '../../karma/karma.service';
 import { TelegramKeyboardService } from '../shared/telegram-keyboard.service';
 import { TextCommandContext } from '../telegram.types';
-import { GroupSettingsService } from '../../groups/group-settings.service';
+import {
+  DEFAULT_LANGUAGE,
+  GroupSettingsService,
+  SupportedLanguage,
+} from '../../groups/group-settings.service';
+import {
+  buildKarmaBotWarning,
+  buildKarmaCooldownMessage,
+  buildKarmaSuccessMessage,
+} from '../dictionary/karma-message.dictionary';
 
 const karmaCooldownCache = new NodeCache();
 const KARMA_REGEX = /(^|\s)(\+|-)1(\s|$)/;
@@ -25,7 +34,20 @@ export class KarmaMessageHandler {
   }
 
   public async handle(ctx: TextCommandContext): Promise<void> {
-    const validationResult = await this.runPreChecks(ctx);
+    const chatId = ctx.chat.id;
+
+    if (ctx.chat.type === 'group' || ctx.chat.type === 'supergroup') {
+      await this.groupSettingsService.ensureDefaults(chatId);
+    }
+
+    let language: SupportedLanguage = DEFAULT_LANGUAGE;
+    try {
+      language = await this.groupSettingsService.getLanguage(chatId);
+    } catch (error) {
+      this.logger.warn(`Failed to load language for chat ${chatId}`, error);
+    }
+
+    const validationResult = await this.runPreChecks(ctx, language);
     if (!validationResult.isValid) {
       if (validationResult.replyMessage) {
         await ctx.reply(validationResult.replyMessage);
@@ -49,7 +71,12 @@ export class KarmaMessageHandler {
       const cacheKey = this.getCooldownCacheKey(chat.id, sender.id);
       karmaCooldownCache.set(cacheKey, true, cooldownSeconds);
 
-      await this.sendSuccessResponse(ctx, result.receiverName, result.newKarma);
+      await this.sendSuccessResponse(
+        ctx,
+        language,
+        result.receiverName,
+        result.newKarma,
+      );
     } catch (error) {
       this.logger.error(
         `Error in karma update flow for message ${ctx.message.message_id}`,
@@ -58,7 +85,10 @@ export class KarmaMessageHandler {
     }
   }
 
-  private async runPreChecks(ctx: TextCommandContext): Promise<{
+  private async runPreChecks(
+    ctx: TextCommandContext,
+    language: SupportedLanguage,
+  ): Promise<{
     isValid: boolean;
     replyMessage?: string;
     data?: {
@@ -81,7 +111,10 @@ export class KarmaMessageHandler {
     }
 
     if (receiver.is_bot) {
-      return { isValid: false, replyMessage: 'You cannot give karma to bots.' };
+      return {
+        isValid: false,
+        replyMessage: buildKarmaBotWarning(language),
+      };
     }
 
     const chatId = ctx.chat.id;
@@ -90,12 +123,16 @@ export class KarmaMessageHandler {
     const cacheKey = this.getCooldownCacheKey(chatId, sender.id);
 
     if (karmaCooldownCache.get(cacheKey)) {
-      const timeLeft = Math.ceil(
-        (karmaCooldownCache.getTtl(cacheKey)! - Date.now()) / 1000,
+      const ttl = karmaCooldownCache.getTtl(cacheKey);
+      const secondsLeft = Math.max(
+        1,
+        ttl ? Math.ceil((ttl - Date.now()) / 1000) : cooldownSeconds,
       );
       return {
         isValid: false,
-        replyMessage: `Please wait ${timeLeft} seconds before giving karma again.`,
+        replyMessage: buildKarmaCooldownMessage(language, {
+          secondsLeft,
+        }),
       };
     }
 
@@ -111,6 +148,7 @@ export class KarmaMessageHandler {
 
   private async sendSuccessResponse(
     ctx: TextCommandContext,
+    language: SupportedLanguage,
     receiverName: string,
     newKarma: number,
   ): Promise<void> {
@@ -124,7 +162,10 @@ export class KarmaMessageHandler {
       extra.reply_markup = keyboard.reply_markup;
     }
 
-    const message = `${receiverName} now has ${newKarma} karma.`;
+    const message = buildKarmaSuccessMessage(language, {
+      receiverName,
+      newKarma,
+    });
 
     await ctx.telegram.sendMessage(ctx.chat.id, message, extra);
   }

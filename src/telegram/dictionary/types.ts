@@ -1,4 +1,4 @@
-import type { SupportedLanguage } from '../../../groups/group-settings.service';
+import type { SupportedLanguage } from '../../groups/group-settings.service';
 
 export type PartialLocalizedDictionary<T> = {
   en: T;

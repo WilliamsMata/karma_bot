@@ -7,7 +7,7 @@ import {
   GroupSettingsService,
   SupportedLanguage,
 } from '../../../groups/group-settings.service';
-import { buildHelpMessage } from '../dictionary/help.dictionary';
+import { buildHelpMessage } from '../../dictionary/help.dictionary';
 import {
   ITextCommandHandler,
   TextCommandContext,
