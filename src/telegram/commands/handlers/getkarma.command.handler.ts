@@ -7,6 +7,13 @@ import {
   TextCommandContext,
 } from 'src/telegram/telegram.types';
 import { formatUsernameForDisplay } from '../command.helpers';
+import {
+  buildGetKarmaErrorMessage,
+  buildGetKarmaNotFoundMessage,
+  buildGetKarmaSuccessMessage,
+  buildGetKarmaUsageMessage,
+} from '../../dictionary/get-karma.dictionary';
+import { TelegramLanguageService } from '../../shared/telegram-language.service';
 
 @Injectable()
 export class GetKarmaCommandHandler implements ITextCommandHandler {
@@ -16,15 +23,24 @@ export class GetKarmaCommandHandler implements ITextCommandHandler {
   constructor(
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
+    private readonly languageService: TelegramLanguageService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
     const match = ctx.message.text.match(this.command);
-    if (!match) return;
+    const language = await this.languageService.resolveLanguage(ctx.chat);
+
+    if (!match) {
+      await ctx.reply(buildGetKarmaUsageMessage(language));
+      return;
+    }
 
     const input = match[1].trim();
 
-    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(
+      ctx.chat,
+      language,
+    );
     const extra: ExtraReplyMessage = {};
     if (keyboard) {
       extra.reply_markup = keyboard.reply_markup;
@@ -37,24 +53,23 @@ export class GetKarmaCommandHandler implements ITextCommandHandler {
       );
       if (!karma) {
         await ctx.reply(
-          `No karma found for user "${input}" in this group.`,
+          buildGetKarmaNotFoundMessage(language, { input }),
           extra,
         );
         return;
       }
 
       const displayName = formatUsernameForDisplay(karma.user);
-      const message = `
-👤 User: ${displayName}
-✨ Karma: ${karma.karma || 0} in this group
-
-♥ Given karma: ${karma.givenKarma || 0}.
-😠 Given hate: ${karma.givenHate || 0}.
-      `;
-      await ctx.reply(message.trim(), extra);
+      const message = buildGetKarmaSuccessMessage(language, {
+        displayName,
+        karma: karma.karma || 0,
+        givenKarma: karma.givenKarma || 0,
+        givenHate: karma.givenHate || 0,
+      });
+      await ctx.reply(message, extra);
     } catch (error) {
       this.logger.error(error);
-      await ctx.reply(`Sorry, I couldn't retrieve karma for "${input}".`);
+      await ctx.reply(buildGetKarmaErrorMessage(language, { input }));
     }
   }
 }

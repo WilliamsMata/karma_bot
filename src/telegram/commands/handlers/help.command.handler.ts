@@ -3,11 +3,10 @@ import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service'
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   DEFAULT_COOLDOWN_SECONDS,
-  DEFAULT_LANGUAGE,
   GroupSettingsService,
-  SupportedLanguage,
 } from '../../../groups/group-settings.service';
 import { buildHelpMessage } from '../../dictionary/help.dictionary';
+import { TelegramLanguageService } from '../../shared/telegram-language.service';
 import {
   ITextCommandHandler,
   TextCommandContext,
@@ -20,10 +19,20 @@ export class HelpCommandHandler implements ITextCommandHandler {
   constructor(
     private readonly keyboardService: TelegramKeyboardService,
     private readonly groupSettingsService: GroupSettingsService,
+    private readonly languageService: TelegramLanguageService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
-    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+    const chat = ctx.chat;
+    let language = this.languageService.resolveLanguageFromUser(ctx.from);
+    if (chat && (chat.type === 'group' || chat.type === 'supergroup')) {
+      language = await this.languageService.resolveLanguage(chat);
+    }
+
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(
+      chat,
+      language,
+    );
 
     const extra: ExtraReplyMessage = {};
     extra.parse_mode = 'Markdown';
@@ -32,21 +41,14 @@ export class HelpCommandHandler implements ITextCommandHandler {
     }
 
     let cooldownSeconds = DEFAULT_COOLDOWN_SECONDS;
-    let language: SupportedLanguage = DEFAULT_LANGUAGE;
-
-    const chatId = ctx.chat?.id;
-    if (typeof chatId === 'number') {
-      if (ctx.chat.type === 'group' || ctx.chat.type === 'supergroup') {
-        await this.groupSettingsService.ensureDefaults(chatId);
-      }
-
-      const [fetchedCooldown, fetchedLanguage] = await Promise.all([
-        this.groupSettingsService.getCooldownSeconds(chatId),
-        this.groupSettingsService.getLanguage(chatId),
-      ]);
-
-      cooldownSeconds = fetchedCooldown;
-      language = fetchedLanguage;
+    const chatId = chat?.id;
+    if (
+      chat &&
+      (chat.type === 'group' || chat.type === 'supergroup') &&
+      typeof chatId === 'number'
+    ) {
+      cooldownSeconds =
+        await this.groupSettingsService.getCooldownSeconds(chatId);
     }
 
     const helpMessage = buildHelpMessage(language, { cooldownSeconds });

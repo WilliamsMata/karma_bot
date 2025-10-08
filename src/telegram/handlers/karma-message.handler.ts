@@ -6,7 +6,6 @@ import { KarmaService } from '../../karma/karma.service';
 import { TelegramKeyboardService } from '../shared/telegram-keyboard.service';
 import { TextCommandContext } from '../telegram.types';
 import {
-  DEFAULT_LANGUAGE,
   GroupSettingsService,
   SupportedLanguage,
 } from '../../groups/group-settings.service';
@@ -15,6 +14,7 @@ import {
   buildKarmaCooldownMessage,
   buildKarmaSuccessMessage,
 } from '../dictionary/karma-message.dictionary';
+import { TelegramLanguageService } from '../shared/telegram-language.service';
 
 const karmaCooldownCache = new NodeCache();
 const KARMA_REGEX = /(^|\s)(\+|-)1(\s|$)/;
@@ -27,6 +27,7 @@ export class KarmaMessageHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly groupSettingsService: GroupSettingsService,
+    private readonly languageService: TelegramLanguageService,
   ) {}
 
   public isApplicable(text: string): boolean {
@@ -34,18 +35,7 @@ export class KarmaMessageHandler {
   }
 
   public async handle(ctx: TextCommandContext): Promise<void> {
-    const chatId = ctx.chat.id;
-
-    if (ctx.chat.type === 'group' || ctx.chat.type === 'supergroup') {
-      await this.groupSettingsService.ensureDefaults(chatId);
-    }
-
-    let language: SupportedLanguage = DEFAULT_LANGUAGE;
-    try {
-      language = await this.groupSettingsService.getLanguage(chatId);
-    } catch (error) {
-      this.logger.warn(`Failed to load language for chat ${chatId}`, error);
-    }
+    const language = await this.languageService.resolveLanguage(ctx.chat);
 
     const validationResult = await this.runPreChecks(ctx, language);
     if (!validationResult.isValid) {
@@ -152,7 +142,10 @@ export class KarmaMessageHandler {
     receiverName: string,
     newKarma: number,
   ): Promise<void> {
-    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(
+      ctx.chat,
+      language,
+    );
 
     const extra: ExtraReplyMessage = {
       reply_parameters: { message_id: ctx.message.message_id },

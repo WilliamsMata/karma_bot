@@ -6,6 +6,17 @@ import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
+import { formatUsernameForDisplay } from '../command.helpers';
+import { TelegramLanguageService } from '../../shared/telegram-language.service';
+import {
+  buildSendBotTransferMessage,
+  buildSendCriticalErrorMessage,
+  buildSendInvalidAmountMessage,
+  buildSendReplyRequiredMessage,
+  buildSendSelfTransferMessage,
+  buildSendSuccessMessage,
+  buildSendUsageMessage,
+} from '../../dictionary/send.dictionary';
 
 @Injectable()
 export class SendCommandHandler implements ITextCommandHandler {
@@ -15,9 +26,11 @@ export class SendCommandHandler implements ITextCommandHandler {
   constructor(
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
+    private readonly languageService: TelegramLanguageService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
+    const language = await this.languageService.resolveLanguage(ctx.chat);
     if (
       !ctx.message ||
       !('text' in ctx.message) ||
@@ -31,16 +44,14 @@ export class SendCommandHandler implements ITextCommandHandler {
         'text' in ctx.message &&
         ctx.message.text.match(this.command)
       ) {
-        await ctx.reply(
-          "You need to reply to a user's message to send them karma.",
-        );
+        await ctx.reply(buildSendReplyRequiredMessage(language));
       }
       return;
     }
 
     const match = ctx.message.text.match(this.command);
     if (!match) {
-      await ctx.reply('You need to specify the amount to send. Ex: /send 10');
+      await ctx.reply(buildSendUsageMessage(language));
       return;
     }
 
@@ -49,21 +60,22 @@ export class SendCommandHandler implements ITextCommandHandler {
     const quantity = parseInt(match[1], 10);
 
     if (receiver.id === sender.id) {
-      await ctx.reply('You cannot send karma to yourself.');
+      await ctx.reply(buildSendSelfTransferMessage(language));
       return;
     }
     if (receiver.is_bot) {
-      await ctx.reply('You cannot send karma to bots.');
+      await ctx.reply(buildSendBotTransferMessage(language));
       return;
     }
     if (isNaN(quantity) || quantity <= 0) {
-      await ctx.reply(
-        'The amount must be a positive whole number. Ex: /send 10',
-      );
+      await ctx.reply(buildSendInvalidAmountMessage(language));
       return;
     }
 
-    const keyboard = this.keyboardService.getGroupWebAppKeyboard(ctx.chat);
+    const keyboard = this.keyboardService.getGroupWebAppKeyboard(
+      ctx.chat,
+      language,
+    );
 
     const extra: ExtraReplyMessage = {};
     extra.reply_parameters = { message_id: ctx.message.message_id };
@@ -81,12 +93,18 @@ export class SendCommandHandler implements ITextCommandHandler {
 
       const senderName = result.senderKarma.user.userName
         ? `@${result.senderKarma.user.userName}`
-        : result.senderKarma.user.firstName;
+        : formatUsernameForDisplay(result.senderKarma.user);
       const receiverName = result.receiverKarma.user.userName
         ? `@${result.receiverKarma.user.userName}`
-        : result.receiverKarma.user.firstName;
+        : formatUsernameForDisplay(result.receiverKarma.user);
 
-      const message = `💸 ${senderName} has sent ${quantity} karma to ${receiverName}!\n\n${senderName} new karma: ${result.senderKarma.karma}\n${receiverName} new karma: ${result.receiverKarma.karma}`;
+      const message = buildSendSuccessMessage(language, {
+        senderName,
+        receiverName,
+        quantity,
+        senderKarma: result.senderKarma.karma ?? 0,
+        receiverKarma: result.receiverKarma.karma ?? 0,
+      });
 
       await ctx.telegram.sendMessage(ctx.chat.id, message, extra);
     } catch (error) {
@@ -98,10 +116,7 @@ export class SendCommandHandler implements ITextCommandHandler {
       if (error instanceof BadRequestException) {
         await ctx.reply(error.message, extra);
       } else {
-        await ctx.reply(
-          'A critical error occurred during the karma transfer.',
-          extra,
-        );
+        await ctx.reply(buildSendCriticalErrorMessage(language), extra);
       }
     }
   }
