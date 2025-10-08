@@ -50,6 +50,7 @@ Hello! I'm the Karma Bot. Here's how you can interact with me:
 
 *Other:*
   • \`/help\`: Shows this help message.
+  • \`/settings\`: Opens the group settings menu (admins only).
     `;
     await ctx.reply(helpMessage.trim(), extra);
   }
