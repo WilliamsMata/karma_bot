@@ -5,12 +5,45 @@ import { User } from '../../users/schemas/user.schema';
 import { Group } from '../../groups/schemas/group.schema';
 
 @Schema({ _id: false })
-class KarmaHistory {
+export class KarmaHistory {
   @Prop({ default: Date.now })
   timestamp: Date;
 
   @Prop({ required: true })
   karmaChange: number;
+
+  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  actor: Types.ObjectId;
+
+  @Prop({ required: true })
+  actorFirstName: string;
+
+  @Prop()
+  actorLastName?: string;
+
+  @Prop()
+  actorUserName?: string;
+
+  @Prop({ required: true })
+  actorTelegramId: number;
+
+  @Prop()
+  targetFirstName?: string;
+
+  @Prop()
+  targetLastName?: string;
+
+  @Prop()
+  targetUserName?: string;
+
+  @Prop()
+  targetTelegramId?: number;
+
+  @Prop()
+  messageId?: number;
+
+  @Prop()
+  chatId?: number;
 }
 
 @Schema({ timestamps: true, versionKey: false })

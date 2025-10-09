@@ -9,7 +9,7 @@ export class UsersApiService {
   constructor(private readonly karmaService: KarmaService) {}
 
   public async getGroupsForUser(userId: number): Promise<UserGroupDto[]> {
-    const groups = await this.karmaService.getGroupsForUser(userId);
+    const groups = await this.karmaService.getGroupsForUser({ userId });
     return groups.map(({ _id, ...rest }) => rest);
   }
 }

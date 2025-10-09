@@ -28,8 +28,10 @@ export class MostGiversCommandHandler implements ITextCommandHandler {
   async handle(ctx: TextCommandContext): Promise<void> {
     const language = await this.languageService.resolveLanguage(ctx.chat);
     const { topGivenKarma, topGivenHate } = await this.karmaService.getTopGiven(
-      ctx.chat.id,
-      10,
+      {
+        groupId: ctx.chat.id,
+        limit: 10,
+      },
     );
     const keyboard = this.keyboardService.getGroupWebAppKeyboard(
       ctx.chat,

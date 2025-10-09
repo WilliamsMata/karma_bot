@@ -84,12 +84,16 @@ export class SendCommandHandler implements ITextCommandHandler {
     }
 
     try {
-      const result = await this.karmaService.transferKarma(
-        sender,
-        receiver,
-        ctx.chat,
+      const result = await this.karmaService.transferKarma({
+        senderData: sender,
+        receiverData: receiver,
+        chatData: ctx.chat,
         quantity,
-      );
+        context: {
+          messageId: ctx.message.message_id,
+          messageDate: ctx.message.date,
+        },
+      });
 
       const senderName = result.senderKarma.user.userName
         ? `@${result.senderKarma.user.userName}`

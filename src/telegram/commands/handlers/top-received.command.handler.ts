@@ -50,11 +50,11 @@ export class TopReceivedCommandHandler implements ITextCommandHandler {
     const language = await this.languageService.resolveLanguage(ctx.chat);
 
     try {
-      const topUsers = await this.karmaService.getTopUsersByKarmaReceived(
-        ctx.chat.id,
+      const topUsers = await this.karmaService.getTopUsersByKarmaReceived({
+        groupId: ctx.chat.id,
         daysBack,
-        10,
-      );
+        limit: 10,
+      });
       const keyboard = this.keyboardService.getGroupWebAppKeyboard(
         ctx.chat,
         language,

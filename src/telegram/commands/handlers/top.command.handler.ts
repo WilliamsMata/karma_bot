@@ -25,11 +25,11 @@ export class TopCommandHandler implements ITextCommandHandler {
 
   async handle(ctx: TextCommandContext): Promise<void> {
     const language = await this.languageService.resolveLanguage(ctx.chat);
-    const topUsers = await this.karmaService.getTopKarma(
-      ctx.chat.id,
-      false,
-      10,
-    );
+    const topUsers = await this.karmaService.getTopKarma({
+      groupId: ctx.chat.id,
+      ascending: false,
+      limit: 10,
+    });
     const keyboard = this.keyboardService.getGroupWebAppKeyboard(
       ctx.chat,
       language,

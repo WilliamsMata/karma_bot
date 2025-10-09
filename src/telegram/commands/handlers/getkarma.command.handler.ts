@@ -47,10 +47,10 @@ export class GetKarmaCommandHandler implements ITextCommandHandler {
     }
 
     try {
-      const karma = await this.karmaService.findKarmaByUserQuery(
+      const karma = await this.karmaService.findKarmaByUserQuery({
         input,
-        ctx.chat.id,
-      );
+        groupId: ctx.chat.id,
+      });
       if (!karma) {
         await ctx.reply(
           buildGetKarmaNotFoundMessage(language, { input }),

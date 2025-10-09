@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { KarmaService } from '../../../karma/karma.service';
-import { formatKarmaHistory } from '../command.helpers';
+import {
+  formatKarmaHistory,
+  formatUsernameForDisplay,
+} from '../command.helpers';
 import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
@@ -36,10 +39,10 @@ export class GetHistoryCommandHandler implements ITextCommandHandler {
 
     const input = match[1].trim();
     try {
-      const karma = await this.karmaService.findKarmaByUserQuery(
+      const karma = await this.karmaService.findKarmaByUserQuery({
         input,
-        ctx.chat.id,
-      );
+        groupId: ctx.chat.id,
+      });
       const keyboard = this.keyboardService.getGroupWebAppKeyboard(
         ctx.chat,
         language,
@@ -48,7 +51,14 @@ export class GetHistoryCommandHandler implements ITextCommandHandler {
       if (keyboard) {
         extra.reply_markup = keyboard.reply_markup;
       }
-      const historyMessage = formatKarmaHistory(karma?.history);
+      const historyMessage = formatKarmaHistory(karma?.history, {
+        language,
+        currentUserTelegramId: karma?.user?.userId ?? ctx.from.id,
+        useSelfPronoun: false,
+        selfDisplayName: karma?.user
+          ? formatUsernameForDisplay(karma.user)
+          : undefined,
+      });
 
       const message = buildGetHistorySuccessMessage(language, {
         input,

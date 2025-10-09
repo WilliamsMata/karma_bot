@@ -28,11 +28,11 @@ export class HateCommandHandler implements ITextCommandHandler {
   async handle(ctx: TextCommandContext): Promise<void> {
     const language = await this.languageService.resolveLanguage(ctx.chat);
 
-    const hatedUsers = await this.karmaService.getTopKarma(
-      ctx.chat.id,
-      true,
-      10,
-    );
+    const hatedUsers = await this.karmaService.getTopKarma({
+      groupId: ctx.chat.id,
+      ascending: true,
+      limit: 10,
+    });
 
     const keyboard = this.keyboardService.getGroupWebAppKeyboard(
       ctx.chat,

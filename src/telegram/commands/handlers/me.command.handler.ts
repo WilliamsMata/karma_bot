@@ -26,10 +26,10 @@ export class MeCommandHandler implements ITextCommandHandler {
     const language = await this.languageService.resolveLanguage(ctx.chat);
 
     try {
-      const karmaDoc = await this.karmaService.getKarmaForUser(
-        user.id,
-        chat.id,
-      );
+      const karmaDoc = await this.karmaService.getKarmaForUser({
+        userId: user.id,
+        chatId: chat.id,
+      });
       const userName = user.username ? `@${user.username}` : user.first_name;
 
       const keyboard = this.keyboardService.getGroupWebAppKeyboard(

@@ -51,12 +51,16 @@ export class KarmaMessageHandler {
       const match = ctx.message.text.match(KARMA_REGEX)!;
       const karmaValue = match[2] === '+' ? 1 : -1;
 
-      const result = await this.karmaService.updateKarma(
-        sender,
-        receiver,
-        chat,
-        karmaValue,
-      );
+      const result = await this.karmaService.updateKarma({
+        senderData: sender,
+        receiverData: receiver,
+        chatData: chat,
+        incValue: karmaValue,
+        context: {
+          messageId: ctx.message.message_id,
+          messageDate: ctx.message.date,
+        },
+      });
 
       const cacheKey = this.getCooldownCacheKey(chat.id, sender.id);
       karmaCooldownCache.set(cacheKey, true, cooldownSeconds);

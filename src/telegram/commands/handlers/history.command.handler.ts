@@ -31,10 +31,10 @@ export class HistoryCommandHandler implements ITextCommandHandler {
     const language = await this.languageService.resolveLanguage(chat);
 
     try {
-      const karmaDoc = await this.karmaService.getKarmaForUser(
-        user.id,
-        chat.id,
-      );
+      const karmaDoc = await this.karmaService.getKarmaForUser({
+        userId: user.id,
+        chatId: chat.id,
+      });
       const keyboard = this.keyboardService.getGroupWebAppKeyboard(
         ctx.chat,
         language,
@@ -51,7 +51,10 @@ export class HistoryCommandHandler implements ITextCommandHandler {
         return;
       }
 
-      const historyMessage = formatKarmaHistory(history);
+      const historyMessage = formatKarmaHistory(history, {
+        language,
+        currentUserTelegramId: user.id,
+      });
       const message = buildHistorySuccessMessage(language, { historyMessage });
 
       await ctx.reply(message, extra);

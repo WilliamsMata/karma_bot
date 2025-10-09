@@ -12,11 +12,27 @@ import {
 } from 'mongoose';
 import { AbstractRepository } from '../database/abstract.repository';
 import { User } from '../users/schemas/user.schema';
-import { Karma } from './schemas/karma.schema';
+import { Karma, KarmaHistory } from './schemas/karma.schema';
 import { TopReceivedKarmaDto } from './dto/top-received-karma.dto';
 import type { PopulatedKarma } from './karma.types';
 
 export type KarmaDocument = Document<unknown, object, Karma> & Karma;
+
+export type KarmaHistoryPayload = {
+  timestamp: Date;
+  karmaChange: number;
+  actor: Types.ObjectId;
+  actorFirstName: string;
+  actorLastName?: string;
+  actorUserName?: string;
+  actorTelegramId: number;
+  targetFirstName?: string;
+  targetLastName?: string;
+  targetUserName?: string;
+  targetTelegramId?: number;
+  messageId?: number;
+  chatId?: number;
+};
 
 @Injectable()
 export class KarmaRepository extends AbstractRepository<Karma> {
@@ -29,79 +45,91 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     super(karmaModel, connection);
   }
 
-  async updateSenderKarma(
-    senderId: Types.ObjectId,
-    groupId: Types.ObjectId,
-    incValue: number,
-  ) {
+  async updateSenderKarma(params: {
+    senderId: Types.ObjectId;
+    groupId: Types.ObjectId;
+    incValue: number;
+  }) {
+    const { senderId, groupId, incValue } = params;
     const filterQuery: FilterQuery<Karma> = { user: senderId, group: groupId };
     const updateQuery: UpdateQuery<Karma> =
       incValue === 1 ? { $inc: { givenKarma: 1 } } : { $inc: { givenHate: 1 } };
     return this.upsert(filterQuery, updateQuery);
   }
 
-  async updateReceiverKarma(
-    receiverId: Types.ObjectId,
-    groupId: Types.ObjectId,
-    incValue: number,
-  ) {
+  async updateReceiverKarma(params: {
+    receiverId: Types.ObjectId;
+    groupId: Types.ObjectId;
+    incValue: number;
+    historyEntry: KarmaHistoryPayload;
+  }) {
+    const { receiverId, groupId, incValue, historyEntry } = params;
     const filterQuery: FilterQuery<Karma> = {
       user: receiverId,
       group: groupId,
     };
     const updateQuery: UpdateQuery<Karma> = {
       $inc: { karma: incValue },
-      $push: { history: { karmaChange: incValue } as any },
+      $push: { history: historyEntry },
     };
     return this.upsert(filterQuery, updateQuery);
   }
 
-  async findTopKarma(
-    groupId: Types.ObjectId,
-    ascending: boolean,
-    limit: number,
-  ): Promise<PopulatedKarma[]> {
+  async findTopKarma(params: {
+    groupId: Types.ObjectId;
+    ascending: boolean;
+    limit: number;
+  }): Promise<PopulatedKarma[]> {
+    const { groupId, ascending, limit } = params;
     const sortQuery: { [key: string]: 1 | -1 } = { karma: ascending ? 1 : -1 };
-    return this.findWithPopulatedUser({ group: groupId }, sortQuery, limit);
-  }
-
-  async findTopGivers(
-    groupId: Types.ObjectId,
-    field: 'givenKarma' | 'givenHate',
-    limit: number,
-  ): Promise<PopulatedKarma[]> {
-    const sortQuery: { [key: string]: 1 | -1 } = { [field]: -1 };
-    return this.findWithPopulatedUser(
-      { group: groupId, [field]: { $gt: 0 } },
+    return this.findWithPopulatedUser({
+      filterQuery: { group: groupId },
       sortQuery,
       limit,
-    );
+    });
   }
 
-  async findOneByUserAndGroup(
-    userId: Types.ObjectId,
-    groupId: Types.ObjectId,
-  ): Promise<Karma | null> {
+  async findTopGivers(params: {
+    groupId: Types.ObjectId;
+    field: 'givenKarma' | 'givenHate';
+    limit: number;
+  }): Promise<PopulatedKarma[]> {
+    const { groupId, field, limit } = params;
+    const sortQuery: { [key: string]: 1 | -1 } = { [field]: -1 };
+    return this.findWithPopulatedUser({
+      filterQuery: { group: groupId, [field]: { $gt: 0 } },
+      sortQuery,
+      limit,
+    });
+  }
+
+  async findOneByUserAndGroup(params: {
+    userId: Types.ObjectId;
+    groupId: Types.ObjectId;
+  }): Promise<Karma | null> {
+    const { userId, groupId } = params;
     return this.findOne({ user: userId, group: groupId }).catch(() => null);
   }
 
-  async findOneByUserAndGroupAndPopulate(
-    userId: Types.ObjectId,
-    groupId: Types.ObjectId,
-  ): Promise<PopulatedKarma | null> {
+  async findOneByUserAndGroupAndPopulate(params: {
+    userId: Types.ObjectId;
+    groupId: Types.ObjectId;
+  }): Promise<PopulatedKarma | null> {
+    const { userId, groupId } = params;
     const filterQuery: FilterQuery<Karma> = { user: userId, group: groupId };
-    return this.findOneAndPopulate(filterQuery, 'user');
+    return this.findOneAndPopulate({ filterQuery, populatePath: 'user' });
   }
 
   async findByUserId(userId: Types.ObjectId): Promise<Karma[]> {
     return this.find({ user: userId });
   }
 
-  async findTopReceived(
-    groupId: Types.ObjectId,
-    daysBack: number,
-    limit: number,
-  ): Promise<TopReceivedKarmaDto[]> {
+  async findTopReceived(params: {
+    groupId: Types.ObjectId;
+    daysBack: number;
+    limit: number;
+  }): Promise<TopReceivedKarmaDto[]> {
+    const { groupId, daysBack, limit } = params;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysBack);
     const pipeline = [
@@ -143,21 +171,23 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     return this.aggregate<TopReceivedKarmaDto>(pipeline);
   }
 
-  async findOneByUserAndGroupForTransaction(
-    userId: Types.ObjectId,
-    groupId: Types.ObjectId,
-    session: ClientSession,
-  ): Promise<KarmaDocument | null> {
+  async findOneByUserAndGroupForTransaction(params: {
+    userId: Types.ObjectId;
+    groupId: Types.ObjectId;
+    session: ClientSession;
+  }): Promise<KarmaDocument | null> {
+    const { userId, groupId, session } = params;
     return this.model
       .findOne({ user: userId, group: groupId })
       .session(session);
   }
 
-  async findWithPopulatedUser(
-    filterQuery: FilterQuery<Karma>,
-    sortQuery: { [key: string]: 1 | -1 },
-    limit: number,
-  ): Promise<PopulatedKarma[]> {
+  async findWithPopulatedUser(params: {
+    filterQuery: FilterQuery<Karma>;
+    sortQuery: { [key: string]: 1 | -1 };
+    limit: number;
+  }): Promise<PopulatedKarma[]> {
+    const { filterQuery, sortQuery, limit } = params;
     let query = this.model
       .find(filterQuery)
       .sort(sortQuery)
@@ -170,10 +200,11 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     return query.lean<PopulatedKarma[]>();
   }
 
-  async findOneAndPopulate(
-    filterQuery: FilterQuery<Karma>,
-    populatePath: string,
-  ): Promise<PopulatedKarma | null> {
+  async findOneAndPopulate(params: {
+    filterQuery: FilterQuery<Karma>;
+    populatePath: string;
+  }): Promise<PopulatedKarma | null> {
+    const { filterQuery, populatePath } = params;
     return this.model
       .findOne(filterQuery)
       .populate(populatePath)
@@ -184,37 +215,45 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     return this.model.aggregate<T>(pipeline);
   }
 
-  async findOneAndUpdateWithSession(
-    filterQuery: FilterQuery<Karma>,
-    updateQuery: UpdateQuery<Karma>,
-    options: QueryOptions & { session: ClientSession },
-  ) {
+  async findOneAndUpdateWithSession(params: {
+    filterQuery: FilterQuery<Karma>;
+    updateQuery: UpdateQuery<Karma>;
+    options: QueryOptions & { session: ClientSession };
+  }) {
+    const { filterQuery, updateQuery, options } = params;
     return this.model.findOneAndUpdate(filterQuery, updateQuery, options);
   }
 
-  async executeKarmaTransferInTransaction(
-    senderKarmaDoc: KarmaDocument,
-    receiverId: Types.ObjectId,
-    quantity: number,
-    session: ClientSession,
-  ): Promise<{ senderKarma: KarmaDocument; receiverKarma: KarmaDocument }> {
+  async executeKarmaTransferInTransaction(params: {
+    senderKarmaDoc: KarmaDocument;
+    receiverId: Types.ObjectId;
+    quantity: number;
+    session: ClientSession;
+    senderHistory: KarmaHistoryPayload;
+    receiverHistory: KarmaHistoryPayload;
+  }): Promise<{ senderKarma: KarmaDocument; receiverKarma: KarmaDocument }> {
+    const {
+      senderKarmaDoc,
+      receiverId,
+      quantity,
+      session,
+      senderHistory,
+      receiverHistory,
+    } = params;
     senderKarmaDoc.karma -= quantity;
-    senderKarmaDoc.history.push({
-      karmaChange: -quantity,
-      timestamp: new Date(),
-    });
+    senderKarmaDoc.history.push(senderHistory as unknown as KarmaHistory);
     const savedSenderPromise = senderKarmaDoc.save({ session });
 
-    const receiverUpdatePromise = this.findOneAndUpdateWithSession(
-      { user: receiverId, group: senderKarmaDoc.group },
-      {
+    const receiverUpdatePromise = this.findOneAndUpdateWithSession({
+      filterQuery: { user: receiverId, group: senderKarmaDoc.group },
+      updateQuery: {
         $inc: { karma: quantity },
         $push: {
-          history: { karmaChange: quantity, timestamp: new Date() },
+          history: receiverHistory,
         },
       },
-      { upsert: true, new: true, session },
-    );
+      options: { upsert: true, new: true, session },
+    });
 
     const [savedSenderDoc, updatedReceiverDoc] = await Promise.all([
       savedSenderPromise,

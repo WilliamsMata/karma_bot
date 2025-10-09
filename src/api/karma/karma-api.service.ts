@@ -17,7 +17,11 @@ export class KarmaApiService {
   public async getGroupLeaderboard(groupId: number) {
     const [groupInfo, usersFromService] = await Promise.all([
       this.groupsService.getGroupInfo(groupId),
-      this.karmaService.getTopKarma(groupId, false, 0),
+      this.karmaService.getTopKarma({
+        groupId,
+        ascending: false,
+        limit: 0,
+      }),
     ]);
 
     if (!groupInfo) {
