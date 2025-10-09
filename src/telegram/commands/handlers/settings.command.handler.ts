@@ -243,6 +243,19 @@ export class SettingsCommandHandler implements ITextCommandHandler {
       const userLanguage = this.languageService.resolveLanguageFromUser(
         ctx.from,
       );
+      const chatId = ctx.chat?.id;
+
+      if (!chatId) {
+        await ctx.answerCbQuery(buildSettingsChatNotFoundMessage(userLanguage));
+        return;
+      }
+
+      if (!(await this.userIsAdmin(ctx.telegram, chatId, ctx.from.id))) {
+        await ctx.answerCbQuery(buildSettingsAdminOnlyMessage(userLanguage), {
+          show_alert: true,
+        });
+        return;
+      }
 
       try {
         await ctx.editMessageText(buildSettingsCloseMessage(userLanguage), {
