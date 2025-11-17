@@ -23,6 +23,7 @@ import { StartCommandHandler } from './commands/handlers/start.command.handler';
 import { SettingsCommandHandler } from './commands/handlers/settings.command.handler';
 import { KarmaMessageHandler } from './handlers/karma-message.handler';
 import { isTextCommandHandler, TextCommandContext } from './telegram.types';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 
 @Injectable()
 export class TelegramService implements OnModuleInit, OnApplicationShutdown {
@@ -76,6 +77,26 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
     });
 
     this.logger.log('Telegram Bot started successfully.');
+  }
+
+  async sendMessage(
+    chatId: number,
+    text: string,
+    extra?: ExtraReplyMessage,
+  ): Promise<void> {
+    if (!this.bot) {
+      this.logger.warn(
+        `Attempted to send a message to chat ${chatId} before the bot was initialized.`,
+      );
+      return;
+    }
+
+    try {
+      await this.bot.telegram.sendMessage(chatId, text, extra);
+    } catch (error) {
+      this.logger.error(`Failed to send message to chat ${chatId}`, error);
+      throw error;
+    }
   }
 
   private registerListeners() {

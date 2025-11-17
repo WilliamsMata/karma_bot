@@ -19,4 +19,15 @@ export class GroupSettingsRepository extends AbstractRepository<GroupSettings> {
     const filterQuery: FilterQuery<GroupSettings> = { groupId };
     return this.findOne(filterQuery).catch(() => null);
   }
+
+  async findAllWithWeeklySummaryEnabled(): Promise<GroupSettings[]> {
+    const filterQuery: FilterQuery<GroupSettings> = {
+      $or: [
+        { weeklySummaryEnabled: { $exists: false } },
+        { weeklySummaryEnabled: true },
+      ],
+    };
+
+    return this.find(filterQuery);
+  }
 }

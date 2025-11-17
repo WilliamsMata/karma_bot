@@ -4,6 +4,7 @@ import { PartialLocalizedDictionary, resolveLocalizedValue } from './types';
 export interface SettingsMainMenuContext {
   cooldownSeconds: number;
   languageLabel: string;
+  weeklySummaryStatusLabel: string;
 }
 
 export interface SettingsCooldownMenuContext {
@@ -28,6 +29,14 @@ export interface SettingsLanguageButtonContext {
 
 export interface SettingsCooldownOptionContext {
   seconds: number;
+}
+
+export interface SettingsWeeklySummaryUpdatedContext {
+  statusLabel: string;
+}
+
+export interface SettingsWeeklySummaryButtonContext {
+  statusLabel: string;
 }
 
 const settingsGroupOnlyDictionary: PartialLocalizedDictionary<string> = {
@@ -81,28 +90,54 @@ const settingsLanguageUpdatedDictionary: PartialLocalizedDictionary<
   fa: ({ languageLabel }) => `زبان به ${languageLabel} تغییر کرد.`,
 };
 
+const settingsWeeklySummaryStatusDictionary: PartialLocalizedDictionary<
+  (enabled: boolean) => string
+> = {
+  en: (enabled) => (enabled ? 'Enabled' : 'Disabled'),
+  es: (enabled) => (enabled ? 'Activadas' : 'Desactivadas'),
+  ru: (enabled) => (enabled ? 'Включены' : 'Отключены'),
+  fa: (enabled) => (enabled ? 'فعال' : 'غیرفعال'),
+};
+
+const settingsWeeklySummaryUpdatedDictionary: PartialLocalizedDictionary<
+  (context: SettingsWeeklySummaryUpdatedContext) => string
+> = {
+  en: ({ statusLabel }) =>
+    `Weekly summary notifications are now ${statusLabel.toLowerCase()}.`,
+  es: ({ statusLabel }) =>
+    `Las notificaciones semanales ahora están ${statusLabel.toLowerCase()}.`,
+  ru: ({ statusLabel }) =>
+    `Еженедельные уведомления теперь ${statusLabel.toLowerCase()}.`,
+  fa: ({ statusLabel }) =>
+    `اعلان‌های هفتگی اکنون ${statusLabel.toLowerCase()} هستند.`,
+};
+
 const settingsMainMenuDictionary: PartialLocalizedDictionary<
   (context: SettingsMainMenuContext) => string
 > = {
-  en: ({ cooldownSeconds, languageLabel }) =>
+  en: ({ cooldownSeconds, languageLabel, weeklySummaryStatusLabel }) =>
     '⚙️ *Group Settings*\n\n' +
     `Current cooldown: *${cooldownSeconds} seconds*.\n\n` +
     `Language: *${languageLabel}*.\n\n` +
+    `Weekly summary notifications: *${weeklySummaryStatusLabel}*.\n\n` +
     'Choose a configuration to modify:',
-  es: ({ cooldownSeconds, languageLabel }) =>
+  es: ({ cooldownSeconds, languageLabel, weeklySummaryStatusLabel }) =>
     '⚙️ *Configuración del grupo*\n\n' +
     `Tiempo de espera actual: *${cooldownSeconds} segundos*.\n\n` +
     `Idioma: *${languageLabel}*.\n\n` +
+    `Notificaciones semanales: *${weeklySummaryStatusLabel}*.\n\n` +
     'Elige una opción para modificar:',
-  ru: ({ cooldownSeconds, languageLabel }) =>
+  ru: ({ cooldownSeconds, languageLabel, weeklySummaryStatusLabel }) =>
     '⚙️ *Настройки группы*\n\n' +
     `Текущее время ожидания: *${cooldownSeconds} секунд*.\n\n` +
     `Язык: *${languageLabel}*.\n\n` +
+    `Еженедельные уведомления: *${weeklySummaryStatusLabel}*.\n\n` +
     'Выберите параметр для изменения:',
-  fa: ({ cooldownSeconds, languageLabel }) =>
+  fa: ({ cooldownSeconds, languageLabel, weeklySummaryStatusLabel }) =>
     '⚙️ *تنظیمات گروه*\n\n' +
     `زمان انتظار فعلی: *${cooldownSeconds} ثانیه*.\n\n` +
     `زبان: *${languageLabel}*.\n\n` +
+    `اعلان‌های هفتگی: *${weeklySummaryStatusLabel}*.\n\n` +
     'یک گزینه را برای ویرایش انتخاب کن:',
 };
 
@@ -177,6 +212,15 @@ const settingsLanguageButtonDictionary: PartialLocalizedDictionary<
   es: ({ languageLabel }) => `🌐 Idioma (${languageLabel})`,
   ru: ({ languageLabel }) => `🌐 Язык (${languageLabel})`,
   fa: ({ languageLabel }) => `🌐 زبان (${languageLabel})`,
+};
+
+const settingsWeeklySummaryButtonDictionary: PartialLocalizedDictionary<
+  (context: SettingsWeeklySummaryButtonContext) => string
+> = {
+  en: ({ statusLabel }) => `📅 Weekly summary (${statusLabel})`,
+  es: ({ statusLabel }) => `📅 Resumen semanal (${statusLabel})`,
+  ru: ({ statusLabel }) => `📅 Еженедельный итог (${statusLabel})`,
+  fa: ({ statusLabel }) => `📅 گزارش هفتگی (${statusLabel})`,
 };
 
 const settingsConfirmButtonDictionary: PartialLocalizedDictionary<string> = {
@@ -343,6 +387,17 @@ export function buildSettingsLanguageButtonLabel(
   return factory(context);
 }
 
+export function buildSettingsWeeklySummaryButtonLabel(
+  language: SupportedLanguage,
+  context: SettingsWeeklySummaryButtonContext,
+): string {
+  const factory = resolveLocalizedValue(
+    settingsWeeklySummaryButtonDictionary,
+    language,
+  );
+  return factory(context);
+}
+
 export function buildSettingsConfirmButtonLabel(
   language: SupportedLanguage,
 ): string {
@@ -361,6 +416,28 @@ export function buildSettingsCooldownOptionLabel(
 ): string {
   const factory = resolveLocalizedValue(
     settingsCooldownOptionDictionary,
+    language,
+  );
+  return factory(context);
+}
+
+export function resolveSettingsWeeklySummaryStatusLabel(
+  language: SupportedLanguage,
+  enabled: boolean,
+): string {
+  const resolver = resolveLocalizedValue(
+    settingsWeeklySummaryStatusDictionary,
+    language,
+  );
+  return resolver(enabled);
+}
+
+export function buildSettingsWeeklySummaryUpdatedMessage(
+  language: SupportedLanguage,
+  context: SettingsWeeklySummaryUpdatedContext,
+): string {
+  const factory = resolveLocalizedValue(
+    settingsWeeklySummaryUpdatedDictionary,
     language,
   );
   return factory(context);

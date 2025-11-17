@@ -28,8 +28,11 @@ import {
   buildSettingsLanguageMenuMessage,
   buildSettingsLanguageUpdatedMessage,
   buildSettingsMainMenuMessage,
+  buildSettingsWeeklySummaryButtonLabel,
+  buildSettingsWeeklySummaryUpdatedMessage,
   buildSettingsUnsupportedLanguageMessage,
   resolveSettingsLanguageLabel,
+  resolveSettingsWeeklySummaryStatusLabel,
 } from '../../dictionary/settings.dictionary';
 import { TelegramLanguageService } from '../../shared/telegram-language.service';
 import {
@@ -42,6 +45,7 @@ const SETTINGS_MENU_ROOT = 'settings:menu:main';
 const SETTINGS_MENU_COOLDOWN = 'settings:menu:cooldown';
 const SETTINGS_MENU_LANGUAGE = 'settings:menu:language';
 const SETTINGS_CLOSE = 'settings:close';
+const SETTINGS_WEEKLY_SUMMARY_TOGGLE = 'settings:weekly-summary:toggle';
 
 @Injectable()
 export class SettingsCommandHandler implements ITextCommandHandler {
@@ -151,6 +155,53 @@ export class SettingsCommandHandler implements ITextCommandHandler {
       }
 
       await ctx.answerCbQuery();
+    });
+
+    bot.action(SETTINGS_WEEKLY_SUMMARY_TOGGLE, async (ctx) => {
+      const chatId = ctx.chat?.id;
+      const userLanguage = this.languageService.resolveLanguageFromUser(
+        ctx.from,
+      );
+
+      if (!chatId) {
+        await ctx.answerCbQuery(
+          buildSettingsChatNotFoundMessage(userLanguage),
+        );
+        return;
+      }
+
+      if (!(await this.userIsAdmin(ctx.telegram, chatId, ctx.from.id))) {
+        await ctx.answerCbQuery(buildSettingsAdminOnlyMessage(userLanguage), {
+          show_alert: true,
+        });
+        return;
+      }
+
+      const currentValue =
+        await this.groupSettingsService.isWeeklySummaryEnabled(chatId);
+      const nextValue = !currentValue;
+
+      await this.groupSettingsService.updateWeeklySummaryEnabled(
+        chatId,
+        nextValue,
+      );
+
+      const statusLabel = resolveSettingsWeeklySummaryStatusLabel(
+        userLanguage,
+        nextValue,
+      );
+
+      await ctx.answerCbQuery(
+        buildSettingsWeeklySummaryUpdatedMessage(userLanguage, {
+          statusLabel,
+        }),
+      );
+
+      try {
+        await this.renderMainMenu(ctx, chatId, userLanguage);
+      } catch (error) {
+        this.logger.error('Failed to edit settings message', error);
+      }
     });
 
     bot.action(/^settings:cooldown:(\d+)$/, async (ctx) => {
@@ -294,23 +345,34 @@ export class SettingsCommandHandler implements ITextCommandHandler {
       title: ctx.chat.title ?? `Group ${ctx.chat.id}`,
     });
 
-    const [cooldown, groupLanguage] = await Promise.all([
-      this.groupSettingsService.getCooldownSeconds(ctx.chat.id),
-      this.groupSettingsService.getLanguage(ctx.chat.id),
-    ]);
+    const [cooldown, groupLanguage, weeklySummaryEnabled] =
+      await Promise.all([
+        this.groupSettingsService.getCooldownSeconds(ctx.chat.id),
+        this.groupSettingsService.getLanguage(ctx.chat.id),
+        this.groupSettingsService.isWeeklySummaryEnabled(ctx.chat.id),
+      ]);
 
     const languageLabel = resolveSettingsLanguageLabel(
       groupLanguage,
       userLanguage,
+    );
+    const weeklySummaryStatusLabel = resolveSettingsWeeklySummaryStatusLabel(
+      userLanguage,
+      weeklySummaryEnabled,
     );
 
     await ctx.reply(
       buildSettingsMainMenuMessage(userLanguage, {
         cooldownSeconds: cooldown,
         languageLabel,
+        weeklySummaryStatusLabel,
       }),
       this.buildReplyExtra(
-        this.buildMainMenuKeyboard(userLanguage, groupLanguage),
+        this.buildMainMenuKeyboard(
+          userLanguage,
+          groupLanguage,
+          weeklySummaryEnabled,
+        ),
       ),
     );
   }
@@ -321,23 +383,34 @@ export class SettingsCommandHandler implements ITextCommandHandler {
     userLanguage: SupportedLanguage,
   ) {
     try {
-      const [cooldown, groupLanguage] = await Promise.all([
-        this.groupSettingsService.getCooldownSeconds(chatId),
-        this.groupSettingsService.getLanguage(chatId),
-      ]);
+      const [cooldown, groupLanguage, weeklySummaryEnabled] =
+        await Promise.all([
+          this.groupSettingsService.getCooldownSeconds(chatId),
+          this.groupSettingsService.getLanguage(chatId),
+          this.groupSettingsService.isWeeklySummaryEnabled(chatId),
+        ]);
 
       const languageLabel = resolveSettingsLanguageLabel(
         groupLanguage,
         userLanguage,
+      );
+      const weeklySummaryStatusLabel = resolveSettingsWeeklySummaryStatusLabel(
+        userLanguage,
+        weeklySummaryEnabled,
       );
 
       await ctx.editMessageText(
         buildSettingsMainMenuMessage(userLanguage, {
           cooldownSeconds: cooldown,
           languageLabel,
+          weeklySummaryStatusLabel,
         }),
         this.buildEditExtra(
-          this.buildMainMenuKeyboard(userLanguage, groupLanguage),
+          this.buildMainMenuKeyboard(
+            userLanguage,
+            groupLanguage,
+            weeklySummaryEnabled,
+          ),
         ),
       );
     } catch (error) {
@@ -348,10 +421,19 @@ export class SettingsCommandHandler implements ITextCommandHandler {
   private buildMainMenuKeyboard(
     userLanguage: SupportedLanguage,
     activeLanguage: SupportedLanguage,
+    weeklySummaryEnabled: boolean,
   ): InlineKeyboardMarkup {
     const languageLabel = resolveSettingsLanguageLabel(
       activeLanguage,
       userLanguage,
+    );
+    const weeklySummaryStatusLabel = resolveSettingsWeeklySummaryStatusLabel(
+      userLanguage,
+      weeklySummaryEnabled,
+    );
+    const weeklySummaryButtonLabel = buildSettingsWeeklySummaryButtonLabel(
+      userLanguage,
+      { statusLabel: weeklySummaryStatusLabel },
     );
 
     return Markup.inlineKeyboard([
@@ -365,6 +447,12 @@ export class SettingsCommandHandler implements ITextCommandHandler {
             languageLabel,
           }),
           SETTINGS_MENU_LANGUAGE,
+        ),
+      ],
+      [
+        Markup.button.callback(
+          weeklySummaryButtonLabel,
+          SETTINGS_WEEKLY_SUMMARY_TOGGLE,
         ),
       ],
       [

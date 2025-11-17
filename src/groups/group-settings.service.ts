@@ -7,6 +7,7 @@ export const DEFAULT_COOLDOWN_SECONDS = 60;
 export const SUPPORTED_LANGUAGES = ['en', 'es', 'ru', 'fa'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
+export const DEFAULT_WEEKLY_SUMMARY_ENABLED = true;
 
 @Injectable()
 export class GroupSettingsService {
@@ -18,6 +19,16 @@ export class GroupSettingsService {
     const existing =
       await this.groupSettingsRepository.findOneByGroupId(groupId);
     if (existing) {
+      if (typeof existing.weeklySummaryEnabled === 'undefined') {
+        return this.groupSettingsRepository.upsert(
+          { groupId },
+          {
+            $set: { weeklySummaryEnabled: DEFAULT_WEEKLY_SUMMARY_ENABLED },
+            $setOnInsert: { groupId },
+          },
+        );
+      }
+
       return existing;
     }
 
@@ -27,6 +38,7 @@ export class GroupSettingsService {
         groupId,
         cooldownSeconds: DEFAULT_COOLDOWN_SECONDS,
         language: DEFAULT_LANGUAGE,
+        weeklySummaryEnabled: DEFAULT_WEEKLY_SUMMARY_ENABLED,
       },
     };
 
@@ -48,6 +60,12 @@ export class GroupSettingsService {
       : DEFAULT_LANGUAGE;
   }
 
+  async isWeeklySummaryEnabled(groupId: number): Promise<boolean> {
+    const settings =
+      await this.groupSettingsRepository.findOneByGroupId(groupId);
+    return settings?.weeklySummaryEnabled ?? DEFAULT_WEEKLY_SUMMARY_ENABLED;
+  }
+
   async updateCooldownSeconds(
     groupId: number,
     cooldownSeconds: number,
@@ -55,7 +73,11 @@ export class GroupSettingsService {
     const filterQuery: FilterQuery<GroupSettings> = { groupId };
     const updateQuery: UpdateQuery<GroupSettings> = {
       $set: { cooldownSeconds },
-      $setOnInsert: { groupId },
+      $setOnInsert: {
+        groupId,
+        language: DEFAULT_LANGUAGE,
+        weeklySummaryEnabled: DEFAULT_WEEKLY_SUMMARY_ENABLED,
+      },
     };
 
     return this.groupSettingsRepository.upsert(filterQuery, updateQuery);
@@ -72,9 +94,35 @@ export class GroupSettingsService {
     const filterQuery: FilterQuery<GroupSettings> = { groupId };
     const updateQuery: UpdateQuery<GroupSettings> = {
       $set: { language },
-      $setOnInsert: { groupId },
+      $setOnInsert: {
+        groupId,
+        cooldownSeconds: DEFAULT_COOLDOWN_SECONDS,
+        weeklySummaryEnabled: DEFAULT_WEEKLY_SUMMARY_ENABLED,
+      },
     };
 
     return this.groupSettingsRepository.upsert(filterQuery, updateQuery);
+  }
+
+  async updateWeeklySummaryEnabled(
+    groupId: number,
+    enabled: boolean,
+  ): Promise<GroupSettings> {
+    const filterQuery: FilterQuery<GroupSettings> = { groupId };
+    const updateQuery: UpdateQuery<GroupSettings> = {
+      $set: { weeklySummaryEnabled: enabled },
+      $setOnInsert: {
+        groupId,
+        cooldownSeconds: DEFAULT_COOLDOWN_SECONDS,
+        language: DEFAULT_LANGUAGE,
+        weeklySummaryEnabled: DEFAULT_WEEKLY_SUMMARY_ENABLED,
+      },
+    };
+
+    return this.groupSettingsRepository.upsert(filterQuery, updateQuery);
+  }
+
+  findAllWithWeeklySummaryEnabled(): Promise<GroupSettings[]> {
+    return this.groupSettingsRepository.findAllWithWeeklySummaryEnabled();
   }
 }

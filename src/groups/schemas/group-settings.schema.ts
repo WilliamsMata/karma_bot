@@ -11,6 +11,9 @@ export class GroupSettings extends AbstractDocument {
 
   @Prop({ required: true, default: 'en', enum: ['en', 'es', 'ru', 'fa'] })
   language: string;
+
+  @Prop({ default: true })
+  weeklySummaryEnabled: boolean;
 }
 
 export const GroupSettingsSchema = SchemaFactory.createForClass(GroupSettings);

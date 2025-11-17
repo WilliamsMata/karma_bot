@@ -10,4 +10,5 @@ export * from './send.dictionary';
 export * from './top.dictionary';
 export * from './top-received.dictionary';
 export * from './start.dictionary';
+export * from './weekly-summary.dictionary';
 export * from './types';
