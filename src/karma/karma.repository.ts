@@ -240,6 +240,7 @@ export class KarmaRepository extends AbstractRepository<Karma> {
       senderHistory,
       receiverHistory,
     } = params;
+    this.sanitizeHistoryEntries(senderKarmaDoc);
     senderKarmaDoc.karma -= quantity;
     senderKarmaDoc.history.push(senderHistory as unknown as KarmaHistory);
     const savedSenderPromise = senderKarmaDoc.save({ session });
@@ -267,6 +268,41 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     }
 
     return { senderKarma: savedSenderDoc, receiverKarma: updatedReceiverDoc };
+  }
+
+  private sanitizeHistoryEntries(document: KarmaDocument): void {
+    if (!document.history || document.history.length === 0) {
+      return;
+    }
+
+    const sanitizedHistory = document.history.filter((entry) =>
+      this.isHistoryEntryValid(entry),
+    );
+
+    if (sanitizedHistory.length === document.history.length) {
+      return;
+    }
+
+    const removedCount = document.history.length - sanitizedHistory.length;
+    document.set('history', sanitizedHistory);
+    document.markModified('history');
+    this.logger.warn(
+      `Removed ${removedCount} invalid history entries from karma document ${document._id.toString()}.`,
+    );
+  }
+
+  private isHistoryEntryValid(entry: KarmaHistory | undefined): boolean {
+    if (!entry) {
+      return false;
+    }
+
+    const hasActorId = Boolean(entry.actor);
+    const hasActorFirstName = Boolean(entry.actorFirstName);
+    const hasActorTelegramId =
+      typeof entry.actorTelegramId === 'number' &&
+      !Number.isNaN(entry.actorTelegramId);
+
+    return hasActorId && hasActorFirstName && hasActorTelegramId;
   }
 
   async populateUsers(documents: KarmaDocument[]): Promise<PopulatedKarma[]> {
