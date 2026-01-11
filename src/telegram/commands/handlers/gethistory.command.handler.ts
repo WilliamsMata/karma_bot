@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   formatKarmaHistory,
   formatUsernameForDisplay,
@@ -20,11 +20,10 @@ export class GetHistoryCommandHandler
   extends BaseKarmaCommandHandler
   implements ITextCommandHandler
 {
-  private readonly logger = new Logger(GetHistoryCommandHandler.name);
   command = /^\/gethistory(?:@\w+)?\s+(.+)$/;
 
-  async handle(ctx: TextCommandContext): Promise<void> {
-    const language = await this.languageService.resolveLanguage(ctx.chat);
+  async execute(ctx: TextCommandContext): Promise<void> {
+    const language = ctx.language;
 
     const match = ctx.message.text.match(this.command);
     if (!match) {

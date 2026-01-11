@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   ITextCommandHandler,
@@ -15,37 +15,30 @@ import {
   buildSendUsageMessage,
 } from '../../dictionary/send.dictionary';
 import { BaseKarmaCommandHandler } from './base.karma.command.handler';
+import {
+  ReplyRequiredGuard,
+  SelfInteractionGuard,
+  BotInteractionGuard,
+} from '../../guards';
 
 @Injectable()
 export class SendCommandHandler
   extends BaseKarmaCommandHandler
   implements ITextCommandHandler
 {
-  private readonly logger = new Logger(SendCommandHandler.name);
   command = /^\/send(?:@\w+)?\s+(\d+)$/;
 
-  async handle(ctx: TextCommandContext): Promise<void> {
-    const language = await this.languageService.resolveLanguage(ctx.chat);
-    if (
-      !ctx.message ||
-      !('text' in ctx.message) ||
-      !ctx.from ||
-      !ctx.chat ||
-      !ctx.message.reply_to_message ||
-      !ctx.message.reply_to_message.from
-    ) {
-      if (
-        ctx.message &&
-        'text' in ctx.message &&
-        ctx.message.text.match(this.command)
-      ) {
-        this.messageQueueService.addMessage(
-          ctx.chat.id,
-          buildSendReplyRequiredMessage(language),
-        );
-      }
-      return;
-    }
+  constructor() {
+    super();
+    this.guards = [
+      new ReplyRequiredGuard(buildSendReplyRequiredMessage),
+      new SelfInteractionGuard(buildSendSelfTransferMessage),
+      new BotInteractionGuard(buildSendBotTransferMessage),
+    ];
+  }
+
+  async execute(ctx: TextCommandContext): Promise<void> {
+    const language = ctx.language;
 
     const match = ctx.message.text.match(this.command);
     if (!match) {
@@ -57,23 +50,9 @@ export class SendCommandHandler
     }
 
     const sender = ctx.from;
-    const receiver = ctx.message.reply_to_message.from;
+    const receiver = ctx.message.reply_to_message!.from!;
     const quantity = parseInt(match[1], 10);
 
-    if (receiver.id === sender.id) {
-      this.messageQueueService.addMessage(
-        ctx.chat.id,
-        buildSendSelfTransferMessage(language),
-      );
-      return;
-    }
-    if (receiver.is_bot) {
-      this.messageQueueService.addMessage(
-        ctx.chat.id,
-        buildSendBotTransferMessage(language),
-      );
-      return;
-    }
     if (isNaN(quantity) || quantity <= 0) {
       this.messageQueueService.addMessage(
         ctx.chat.id,

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Context as TelegrafContext, Markup, Telegraf } from 'telegraf';
 import { ChatMember, InlineKeyboardMarkup } from 'telegraf/types';
 import type { Update } from 'telegraf/types';
@@ -8,7 +8,6 @@ import {
 } from 'telegraf/typings/telegram-types';
 import { GroupsService } from '../../../groups/groups.service';
 import {
-  GroupSettingsService,
   SUPPORTED_LANGUAGES,
   SupportedLanguage,
 } from '../../../groups/group-settings.service';
@@ -49,12 +48,8 @@ export class SettingsCommandHandler
   implements ITextCommandHandler
 {
   command = 'settings';
-  private readonly logger = new Logger(SettingsCommandHandler.name);
 
-  constructor(
-    private readonly groupsService: GroupsService,
-    private readonly groupSettingsService: GroupSettingsService,
-  ) {
+  constructor(private readonly groupsService: GroupsService) {
     super();
   }
 
@@ -274,7 +269,7 @@ export class SettingsCommandHandler
     });
   }
 
-  async handle(ctx: TextCommandContext): Promise<void> {
+  async execute(ctx: TextCommandContext): Promise<void> {
     const userLanguage = this.languageService.resolveLanguageFromUser(ctx.from);
 
     if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') {

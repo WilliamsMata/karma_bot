@@ -20,8 +20,8 @@ export class MostGiversCommandHandler
 {
   command = 'mostgivers';
 
-  async handle(ctx: TextCommandContext): Promise<void> {
-    const language = await this.languageService.resolveLanguage(ctx.chat);
+  async execute(ctx: TextCommandContext): Promise<void> {
+    const language = ctx.language;
     const { topGivenKarma, topGivenHate } = await this.karmaService.getTopGiven(
       {
         groupId: ctx.chat.id,

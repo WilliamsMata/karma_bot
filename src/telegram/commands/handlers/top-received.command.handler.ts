@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   ITextCommandHandler,
@@ -18,10 +18,9 @@ export class TopReceivedCommandHandler
   extends BaseKarmaCommandHandler
   implements ITextCommandHandler
 {
-  private readonly logger = new Logger(TopReceivedCommandHandler.name);
   command = /^\/(today|month|year)/;
 
-  async handle(ctx: TextCommandContext): Promise<void> {
+  async execute(ctx: TextCommandContext): Promise<void> {
     const match = ctx.message.text.match(this.command);
     if (!match) return;
 
@@ -42,7 +41,7 @@ export class TopReceivedCommandHandler
         return;
     }
 
-    const language = await this.languageService.resolveLanguage(ctx.chat);
+    const language = ctx.language;
 
     try {
       const topUsers = await this.karmaService.getTopUsersByKarmaReceived({

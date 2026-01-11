@@ -1,51 +1,64 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import NodeCache from 'node-cache';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
-import { User, Chat } from 'telegraf/types';
-import * as NodeCache from 'node-cache';
 import { TextCommandContext } from '../telegram.types';
-import {
-  GroupSettingsService,
-  SupportedLanguage,
-} from '../../groups/group-settings.service';
+import { SupportedLanguage } from '../../groups/group-settings.service';
 import {
   buildKarmaBotWarning,
   buildKarmaCooldownMessage,
   buildKarmaSuccessMessage,
 } from '../dictionary/karma-message.dictionary';
 import { BaseKarmaCommandHandler } from '../commands/handlers/base.karma.command.handler';
+import { ReplyRequiredGuard } from '../guards/reply-required.guard';
+import { SelfInteractionGuard } from '../guards/self-interaction.guard';
+import { BotInteractionGuard } from '../guards/bot-interaction.guard';
+import { CooldownGuard } from '../guards/cooldown.guard';
+import { TelegramGuard } from '../guards/telegram.guard';
 
-const karmaCooldownCache = new NodeCache();
+const karmaCooldownCache: NodeCache = new NodeCache();
 const KARMA_REGEX = /(^|\s)(\+|-)1(\s|$)/;
 
 @Injectable()
-export class KarmaMessageHandler extends BaseKarmaCommandHandler {
-  private readonly logger = new Logger(KarmaMessageHandler.name);
+export class KarmaMessageHandler
+  extends BaseKarmaCommandHandler
+  implements OnModuleInit
+{
+  command = /^$/; // Not used by standard command dispatcher but required by interface
 
-  constructor(private readonly groupSettingsService: GroupSettingsService) {
+  constructor() {
     super();
+  }
+
+  onModuleInit() {
+    this.guards = [
+      new ReplyRequiredGuard(),
+      new SelfInteractionGuard(),
+      new BotInteractionGuard(buildKarmaBotWarning),
+      new CooldownGuard(
+        karmaCooldownCache,
+        this.messageQueueService,
+        buildKarmaCooldownMessage,
+      ),
+    ] as TelegramGuard[];
   }
 
   public isApplicable(text: string): boolean {
     return KARMA_REGEX.test(text);
   }
 
-  public async handle(ctx: TextCommandContext): Promise<void> {
-    const language = await this.languageService.resolveLanguage(ctx.chat);
-
-    const validationResult = await this.runPreChecks(ctx, language);
-    if (!validationResult.isValid) {
-      if (validationResult.replyMessage) {
-        this.messageQueueService.addMessage(
-          ctx.chat.id,
-          validationResult.replyMessage,
-        );
-      }
-      return;
-    }
+  public async execute(ctx: TextCommandContext): Promise<void> {
+    const language = ctx.language;
 
     try {
-      const { sender, receiver, chat, cooldownSeconds } =
-        validationResult.data!;
+      // Guards have already run and validated reply, self, bot, and cooldown.
+      // We can safely access sender, receiver, etc.
+      // But we need to define them for the logic.
+
+      const sender = ctx.from;
+      const receiver = ctx.message.reply_to_message!.from!;
+      const chat = ctx.chat;
+      const cooldownSeconds = ctx.groupSettings?.cooldownSeconds ?? 60; // Default should be handled
+
       const match = ctx.message.text.match(KARMA_REGEX)!;
       const karmaValue = match[2] === '+' ? 1 : -1;
 
@@ -77,63 +90,6 @@ export class KarmaMessageHandler extends BaseKarmaCommandHandler {
     }
   }
 
-  private async runPreChecks(
-    ctx: TextCommandContext,
-    language: SupportedLanguage,
-  ): Promise<{
-    isValid: boolean;
-    replyMessage?: string;
-    data?: {
-      sender: User;
-      receiver: User;
-      chat: Chat;
-      cooldownSeconds: number;
-    };
-  }> {
-    if (!ctx.message.reply_to_message || !ctx.message.reply_to_message.from) {
-      return { isValid: false };
-    }
-
-    const sender = ctx.from;
-    const receiver = ctx.message.reply_to_message.from;
-
-    if (receiver.id === sender.id) {
-      this.logger.warn(`User ${sender.id} tried to give karma to themselves.`);
-      return { isValid: false };
-    }
-
-    if (receiver.is_bot) {
-      return {
-        isValid: false,
-        replyMessage: buildKarmaBotWarning(language),
-      };
-    }
-
-    const chatId = ctx.chat.id;
-    const cooldownSeconds =
-      await this.groupSettingsService.getCooldownSeconds(chatId);
-    const cacheKey = this.getCooldownCacheKey(chatId, sender.id);
-
-    if (karmaCooldownCache.get(cacheKey)) {
-      const ttl = karmaCooldownCache.getTtl(cacheKey);
-      const secondsLeft = Math.max(
-        1,
-        ttl ? Math.ceil((ttl - Date.now()) / 1000) : cooldownSeconds,
-      );
-      return {
-        isValid: false,
-        replyMessage: buildKarmaCooldownMessage(language, {
-          secondsLeft,
-        }),
-      };
-    }
-
-    return {
-      isValid: true,
-      data: { sender, receiver, chat: ctx.chat, cooldownSeconds },
-    };
-  }
-
   private getCooldownCacheKey(chatId: number, userId: number): string {
     return `${chatId}:${userId}`;
   }
@@ -149,10 +105,7 @@ export class KarmaMessageHandler extends BaseKarmaCommandHandler {
       language,
     );
 
-    const extra: ExtraReplyMessage = {
-      reply_parameters: { message_id: ctx.message.message_id },
-    };
-
+    const extra: ExtraReplyMessage = {};
     if (keyboard) {
       extra.reply_markup = keyboard.reply_markup;
     }
@@ -161,7 +114,6 @@ export class KarmaMessageHandler extends BaseKarmaCommandHandler {
       receiverName,
       newKarma,
     });
-
     this.messageQueueService.addMessage(ctx.chat.id, message, extra);
   }
 }

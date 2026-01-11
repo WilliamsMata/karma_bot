@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   ITextCommandHandler,
@@ -18,12 +18,11 @@ export class GetKarmaCommandHandler
   extends BaseKarmaCommandHandler
   implements ITextCommandHandler
 {
-  private readonly logger = new Logger(GetKarmaCommandHandler.name);
   command = /^\/getkarma(?:@\w+)?\s+(.+)$/;
 
-  async handle(ctx: TextCommandContext): Promise<void> {
+  async execute(ctx: TextCommandContext): Promise<void> {
     const match = ctx.message.text.match(this.command);
-    const language = await this.languageService.resolveLanguage(ctx.chat);
+    const language = ctx.language;
 
     if (!match) {
       this.messageQueueService.addMessage(

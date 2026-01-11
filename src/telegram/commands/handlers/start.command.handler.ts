@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Markup } from 'telegraf';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
@@ -19,14 +19,14 @@ export class StartCommandHandler
   implements ITextCommandHandler
 {
   command = 'start';
-  private readonly logger = new Logger(StartCommandHandler.name);
 
   constructor(private readonly configService: ConfigService) {
     super();
   }
 
-  handle(ctx: TextCommandContext): Promise<void> {
-    const language = this.languageService.resolveLanguageFromUser(ctx.from);
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async execute(ctx: TextCommandContext): Promise<void> {
+    const language = ctx.language;
     const botUsernameFromEnv = this.configService.get<string>(
       'TELEGRAM_BOT_USERNAME',
     );
@@ -37,7 +37,7 @@ export class StartCommandHandler
         ctx.chat.id,
         buildStartBotNotConfiguredMessage(language),
       );
-      return Promise.resolve();
+      return;
     }
 
     const botUsername = botUsernameFromEnv.replace(/^@/, '');
@@ -53,6 +53,5 @@ export class StartCommandHandler
     };
 
     this.messageQueueService.addMessage(ctx.chat.id, message, extra);
-    return Promise.resolve();
   }
 }

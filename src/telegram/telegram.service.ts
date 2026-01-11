@@ -85,12 +85,14 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
   private registerListeners() {
     this.bot.on(message('text'), async (ctx) => {
       if (ctx.message.text.startsWith('/')) {
-        await this.handleCommand(ctx);
+        await this.handleCommand(ctx as unknown as TextCommandContext);
         return;
       }
 
       if (this.karmaMessageHandler.isApplicable(ctx.message.text)) {
-        await this.karmaMessageHandler.handle(ctx);
+        await this.karmaMessageHandler.handle(
+          ctx as unknown as TextCommandContext,
+        );
         return;
       }
     });

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   ITextCommandHandler,
@@ -18,10 +18,9 @@ export class HateCommandHandler
   implements ITextCommandHandler
 {
   command = 'hate';
-  private readonly logger = new Logger(HateCommandHandler.name);
 
-  async handle(ctx: TextCommandContext): Promise<void> {
-    const language = await this.languageService.resolveLanguage(ctx.chat);
+  async execute(ctx: TextCommandContext): Promise<void> {
+    const language = ctx.language;
 
     const hatedUsers = await this.karmaService.getTopKarma({
       groupId: ctx.chat.id,

@@ -18,8 +18,8 @@ export class TopCommandHandler
 {
   command = 'top';
 
-  async handle(ctx: TextCommandContext): Promise<void> {
-    const language = await this.languageService.resolveLanguage(ctx.chat);
+  async execute(ctx: TextCommandContext): Promise<void> {
+    const language = ctx.language;
     const topUsers = await this.karmaService.getTopKarma({
       groupId: ctx.chat.id,
       ascending: false,
