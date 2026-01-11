@@ -8,6 +8,7 @@ import {
 } from 'src/telegram/telegram.types';
 import { buildMeKarmaMessage } from '../../dictionary/me.dictionary';
 import { TelegramLanguageService } from '../../shared/telegram-language.service';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class MeCommandHandler implements ITextCommandHandler {
@@ -18,6 +19,7 @@ export class MeCommandHandler implements ITextCommandHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -58,7 +60,7 @@ export class MeCommandHandler implements ITextCommandHandler {
         hasActivity,
       });
 
-      await ctx.reply(message, extra);
+      this.messageQueueService.addMessage(ctx.chat.id, message, extra);
     } catch (error) {
       this.logger.error(
         `Error handling /me command for user ${user.id}`,

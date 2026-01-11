@@ -11,6 +11,7 @@ import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class HelpCommandHandler implements ITextCommandHandler {
@@ -20,6 +21,7 @@ export class HelpCommandHandler implements ITextCommandHandler {
     private readonly keyboardService: TelegramKeyboardService,
     private readonly groupSettingsService: GroupSettingsService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -52,6 +54,6 @@ export class HelpCommandHandler implements ITextCommandHandler {
     }
 
     const helpMessage = buildHelpMessage(language, { cooldownSeconds });
-    await ctx.reply(helpMessage, extra);
+    this.messageQueueService.addMessage(ctx.chat.id, helpMessage, extra);
   }
 }

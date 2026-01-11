@@ -12,6 +12,7 @@ import {
   buildTopEmptyMessage,
   buildTopMessage,
 } from '../../dictionary/top.dictionary';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class TopCommandHandler implements ITextCommandHandler {
@@ -21,6 +22,7 @@ export class TopCommandHandler implements ITextCommandHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -41,7 +43,11 @@ export class TopCommandHandler implements ITextCommandHandler {
     }
 
     if (topUsers.length === 0) {
-      await ctx.reply(buildTopEmptyMessage(language), extra);
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildTopEmptyMessage(language),
+        extra,
+      );
       return;
     }
 
@@ -53,6 +59,6 @@ export class TopCommandHandler implements ITextCommandHandler {
 
     const message = buildTopMessage(language, entries);
 
-    await ctx.reply(message, extra);
+    this.messageQueueService.addMessage(ctx.chat.id, message, extra);
   }
 }

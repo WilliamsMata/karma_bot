@@ -15,6 +15,7 @@ import {
   buildKarmaSuccessMessage,
 } from '../dictionary/karma-message.dictionary';
 import { TelegramLanguageService } from '../shared/telegram-language.service';
+import { MessageQueueService } from '../shared/message-queue.service';
 
 const karmaCooldownCache = new NodeCache();
 const KARMA_REGEX = /(^|\s)(\+|-)1(\s|$)/;
@@ -28,6 +29,7 @@ export class KarmaMessageHandler {
     private readonly keyboardService: TelegramKeyboardService,
     private readonly groupSettingsService: GroupSettingsService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   public isApplicable(text: string): boolean {
@@ -40,7 +42,10 @@ export class KarmaMessageHandler {
     const validationResult = await this.runPreChecks(ctx, language);
     if (!validationResult.isValid) {
       if (validationResult.replyMessage) {
-        await ctx.reply(validationResult.replyMessage);
+        this.messageQueueService.addMessage(
+          ctx.chat.id,
+          validationResult.replyMessage,
+        );
       }
       return;
     }
@@ -164,6 +169,6 @@ export class KarmaMessageHandler {
       newKarma,
     });
 
-    await ctx.telegram.sendMessage(ctx.chat.id, message, extra);
+    this.messageQueueService.addMessage(ctx.chat.id, message, extra);
   }
 }

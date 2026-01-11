@@ -21,6 +21,7 @@ import { GetHistoryCommandHandler } from './commands/handlers/gethistory.command
 import { TopReceivedCommandHandler } from './commands/handlers/top-received.command.handler';
 import { StartCommandHandler } from './commands/handlers/start.command.handler';
 import { SettingsCommandHandler } from './commands/handlers/settings.command.handler';
+import { MessageQueueService } from './shared/message-queue.service';
 import { KarmaMessageHandler } from './handlers/karma-message.handler';
 import { isTextCommandHandler, TextCommandContext } from './telegram.types';
 
@@ -37,6 +38,7 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
   constructor(
     private readonly configService: ConfigService,
     private readonly karmaMessageHandler: KarmaMessageHandler,
+    private readonly messageQueueService: MessageQueueService,
     startHandler: StartCommandHandler,
     settingsHandler: SettingsCommandHandler,
     meHandler: MeCommandHandler,
@@ -74,6 +76,8 @@ export class TelegramService implements OnModuleInit, OnApplicationShutdown {
     this.bot.launch().catch((err) => {
       this.logger.error('Failed to launch the bot', err);
     });
+
+    this.messageQueueService.registerBot(this.bot);
 
     this.logger.log('Telegram Bot started successfully.');
   }

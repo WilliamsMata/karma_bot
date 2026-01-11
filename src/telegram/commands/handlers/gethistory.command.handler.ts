@@ -16,6 +16,7 @@ import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class GetHistoryCommandHandler implements ITextCommandHandler {
@@ -26,6 +27,7 @@ export class GetHistoryCommandHandler implements ITextCommandHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -33,7 +35,10 @@ export class GetHistoryCommandHandler implements ITextCommandHandler {
 
     const match = ctx.message.text.match(this.command);
     if (!match) {
-      await ctx.reply(buildGetHistoryUsageMessage(language));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildGetHistoryUsageMessage(language),
+      );
       return;
     }
 
@@ -65,13 +70,16 @@ export class GetHistoryCommandHandler implements ITextCommandHandler {
         historyMessage,
       });
 
-      await ctx.reply(message, extra);
+      this.messageQueueService.addMessage(ctx.chat.id, message, extra);
     } catch (error) {
       this.logger.error(
         `Error handling /gethistory for input "${input}"`,
         error,
       );
-      await ctx.reply(buildGetHistoryErrorMessage(language, { input }));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildGetHistoryErrorMessage(language, { input }),
+      );
     }
   }
 }

@@ -17,6 +17,7 @@ import {
   buildSendSuccessMessage,
   buildSendUsageMessage,
 } from '../../dictionary/send.dictionary';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class SendCommandHandler implements ITextCommandHandler {
@@ -27,6 +28,7 @@ export class SendCommandHandler implements ITextCommandHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -44,14 +46,20 @@ export class SendCommandHandler implements ITextCommandHandler {
         'text' in ctx.message &&
         ctx.message.text.match(this.command)
       ) {
-        await ctx.reply(buildSendReplyRequiredMessage(language));
+        this.messageQueueService.addMessage(
+          ctx.chat.id,
+          buildSendReplyRequiredMessage(language),
+        );
       }
       return;
     }
 
     const match = ctx.message.text.match(this.command);
     if (!match) {
-      await ctx.reply(buildSendUsageMessage(language));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildSendUsageMessage(language),
+      );
       return;
     }
 
@@ -60,15 +68,24 @@ export class SendCommandHandler implements ITextCommandHandler {
     const quantity = parseInt(match[1], 10);
 
     if (receiver.id === sender.id) {
-      await ctx.reply(buildSendSelfTransferMessage(language));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildSendSelfTransferMessage(language),
+      );
       return;
     }
     if (receiver.is_bot) {
-      await ctx.reply(buildSendBotTransferMessage(language));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildSendBotTransferMessage(language),
+      );
       return;
     }
     if (isNaN(quantity) || quantity <= 0) {
-      await ctx.reply(buildSendInvalidAmountMessage(language));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildSendInvalidAmountMessage(language),
+      );
       return;
     }
 
@@ -110,7 +127,7 @@ export class SendCommandHandler implements ITextCommandHandler {
         receiverKarma: result.receiverKarma.karma ?? 0,
       });
 
-      await ctx.telegram.sendMessage(ctx.chat.id, message, extra);
+      this.messageQueueService.addMessage(ctx.chat.id, message, extra);
     } catch (error) {
       this.logger.error(
         `Error during /send command from ${sender.id} to ${receiver.id}`,
@@ -118,9 +135,13 @@ export class SendCommandHandler implements ITextCommandHandler {
       );
 
       if (error instanceof BadRequestException) {
-        await ctx.reply(error.message, extra);
+        this.messageQueueService.addMessage(ctx.chat.id, error.message, extra);
       } else {
-        await ctx.reply(buildSendCriticalErrorMessage(language), extra);
+        this.messageQueueService.addMessage(
+          ctx.chat.id,
+          buildSendCriticalErrorMessage(language),
+          extra,
+        );
       }
     }
   }

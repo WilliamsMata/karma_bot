@@ -14,6 +14,7 @@ import {
   buildGetKarmaUsageMessage,
 } from '../../dictionary/get-karma.dictionary';
 import { TelegramLanguageService } from '../../shared/telegram-language.service';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class GetKarmaCommandHandler implements ITextCommandHandler {
@@ -24,6 +25,7 @@ export class GetKarmaCommandHandler implements ITextCommandHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -31,7 +33,10 @@ export class GetKarmaCommandHandler implements ITextCommandHandler {
     const language = await this.languageService.resolveLanguage(ctx.chat);
 
     if (!match) {
-      await ctx.reply(buildGetKarmaUsageMessage(language));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildGetKarmaUsageMessage(language),
+      );
       return;
     }
 
@@ -52,7 +57,8 @@ export class GetKarmaCommandHandler implements ITextCommandHandler {
         groupId: ctx.chat.id,
       });
       if (!karma) {
-        await ctx.reply(
+        this.messageQueueService.addMessage(
+          ctx.chat.id,
           buildGetKarmaNotFoundMessage(language, { input }),
           extra,
         );
@@ -66,10 +72,13 @@ export class GetKarmaCommandHandler implements ITextCommandHandler {
         givenKarma: karma.givenKarma || 0,
         givenHate: karma.givenHate || 0,
       });
-      await ctx.reply(message, extra);
+      this.messageQueueService.addMessage(ctx.chat.id, message, extra);
     } catch (error) {
       this.logger.error(error);
-      await ctx.reply(buildGetKarmaErrorMessage(language, { input }));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildGetKarmaErrorMessage(language, { input }),
+      );
     }
   }
 }

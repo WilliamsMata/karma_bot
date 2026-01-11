@@ -13,6 +13,7 @@ import {
   buildHateLeaderboardMessage,
 } from '../../dictionary/hate.dictionary';
 import { TelegramLanguageService } from '../../shared/telegram-language.service';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class HateCommandHandler implements ITextCommandHandler {
@@ -23,6 +24,7 @@ export class HateCommandHandler implements ITextCommandHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -44,7 +46,11 @@ export class HateCommandHandler implements ITextCommandHandler {
     }
 
     if (hatedUsers.length === 0) {
-      await ctx.reply(buildHateEmptyMessage(language), extra);
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildHateEmptyMessage(language),
+        extra,
+      );
       return;
     }
 
@@ -56,6 +62,6 @@ export class HateCommandHandler implements ITextCommandHandler {
 
     const message = buildHateLeaderboardMessage(language, entries);
 
-    await ctx.reply(message, extra);
+    this.messageQueueService.addMessage(ctx.chat.id, message, extra);
   }
 }

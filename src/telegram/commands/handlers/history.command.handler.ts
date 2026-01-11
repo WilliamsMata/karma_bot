@@ -13,6 +13,7 @@ import {
   buildHistoryErrorMessage,
   buildHistorySuccessMessage,
 } from '../../dictionary/history.dictionary';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class HistoryCommandHandler implements ITextCommandHandler {
@@ -23,6 +24,7 @@ export class HistoryCommandHandler implements ITextCommandHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -47,7 +49,11 @@ export class HistoryCommandHandler implements ITextCommandHandler {
       const history = karmaDoc?.history ?? [];
 
       if (!history.length) {
-        await ctx.reply(buildHistoryEmptyMessage(language), extra);
+        this.messageQueueService.addMessage(
+          ctx.chat.id,
+          buildHistoryEmptyMessage(language),
+          extra,
+        );
         return;
       }
 
@@ -57,10 +63,13 @@ export class HistoryCommandHandler implements ITextCommandHandler {
       });
       const message = buildHistorySuccessMessage(language, { historyMessage });
 
-      await ctx.reply(message, extra);
+      this.messageQueueService.addMessage(ctx.chat.id, message, extra);
     } catch (error) {
       this.logger.error(`Error handling /history for user ${user.id}`, error);
-      await ctx.reply(buildHistoryErrorMessage(language));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildHistoryErrorMessage(language),
+      );
     }
   }
 }

@@ -14,6 +14,7 @@ import {
   buildMostGiversNegativeMessage,
   buildMostGiversPositiveMessage,
 } from '../../dictionary/mostgivers.dictionary';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class MostGiversCommandHandler implements ITextCommandHandler {
@@ -23,6 +24,7 @@ export class MostGiversCommandHandler implements ITextCommandHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -70,6 +72,6 @@ export class MostGiversCommandHandler implements ITextCommandHandler {
     }
 
     const message = sections.join('\n\n').trim();
-    await ctx.reply(message, extra);
+    this.messageQueueService.addMessage(ctx.chat.id, message, extra);
   }
 }

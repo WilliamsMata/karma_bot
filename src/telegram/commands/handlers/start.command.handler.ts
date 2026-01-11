@@ -12,6 +12,7 @@ import {
   buildStartButtonLabel,
   buildStartMessage,
 } from '../../dictionary/start.dictionary';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class StartCommandHandler implements ITextCommandHandler {
@@ -21,6 +22,7 @@ export class StartCommandHandler implements ITextCommandHandler {
   constructor(
     private readonly configService: ConfigService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -31,7 +33,10 @@ export class StartCommandHandler implements ITextCommandHandler {
 
     if (!botUsernameFromEnv) {
       this.logger.error('TELEGRAM_BOT_USERNAME is not configured.');
-      await ctx.reply(buildStartBotNotConfiguredMessage(language));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildStartBotNotConfiguredMessage(language),
+      );
       return;
     }
 
@@ -47,6 +52,6 @@ export class StartCommandHandler implements ITextCommandHandler {
       ]).reply_markup,
     };
 
-    await ctx.reply(message, extra);
+    this.messageQueueService.addMessage(ctx.chat.id, message, extra);
   }
 }

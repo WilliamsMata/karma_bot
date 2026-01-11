@@ -14,6 +14,7 @@ import {
   buildTopReceivedErrorMessage,
   buildTopReceivedMessage,
 } from '../../dictionary/top-received.dictionary';
+import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
 export class TopReceivedCommandHandler implements ITextCommandHandler {
@@ -24,6 +25,7 @@ export class TopReceivedCommandHandler implements ITextCommandHandler {
     private readonly karmaService: KarmaService,
     private readonly keyboardService: TelegramKeyboardService,
     private readonly languageService: TelegramLanguageService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
@@ -66,7 +68,8 @@ export class TopReceivedCommandHandler implements ITextCommandHandler {
       }
 
       if (topUsers.length === 0) {
-        await ctx.reply(
+        this.messageQueueService.addMessage(
+          ctx.chat.id,
           buildTopReceivedEmptyMessage(language, commandName),
           extra,
         );
@@ -80,10 +83,13 @@ export class TopReceivedCommandHandler implements ITextCommandHandler {
       }));
 
       const message = buildTopReceivedMessage(language, commandName, entries);
-      await ctx.reply(message, extra);
+      this.messageQueueService.addMessage(ctx.chat.id, message, extra);
     } catch (error) {
       this.logger.error(`Error handling /${commandName}`, error);
-      await ctx.reply(buildTopReceivedErrorMessage(language, commandName));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildTopReceivedErrorMessage(language, commandName),
+      );
     }
   }
 }
