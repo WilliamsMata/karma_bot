@@ -18,21 +18,21 @@ export class GetKarmaCommandHandler
   extends BaseKarmaCommandHandler
   implements ITextCommandHandler
 {
-  command = /^\/getkarma(?:@\w+)?\s+(.+)$/;
+  command = /^\/getkarma(?:@\w+)?(?:\s+(.*))?$/;
 
   async execute(ctx: TextCommandContext): Promise<void> {
     const match = ctx.message.text.match(this.command);
     const language = ctx.language;
 
-    if (!match) {
+    const input = match?.[1]?.trim();
+
+    if (!input) {
       this.messageQueueService.addMessage(
         ctx.chat.id,
         buildGetKarmaUsageMessage(language),
       );
       return;
     }
-
-    const input = match[1].trim();
 
     const keyboard = this.keyboardService.getGroupWebAppKeyboard(
       ctx.chat,

@@ -26,7 +26,7 @@ export class SendCommandHandler
   extends BaseKarmaCommandHandler
   implements ITextCommandHandler
 {
-  command = /^\/send(?:@\w+)?\s+(\d+)$/;
+  command = /^\/send(?:@\w+)?(?:\s+(.*))?$/;
 
   constructor() {
     super();
@@ -41,7 +41,9 @@ export class SendCommandHandler
     const language = ctx.language;
 
     const match = ctx.message.text.match(this.command);
-    if (!match) {
+    const amountStr = match?.[1]?.trim();
+
+    if (!amountStr || !/^\d+$/.test(amountStr)) {
       this.messageQueueService.addMessage(
         ctx.chat.id,
         buildSendUsageMessage(language),
@@ -51,7 +53,7 @@ export class SendCommandHandler
 
     const sender = ctx.from;
     const receiver = ctx.message.reply_to_message!.from!;
-    const quantity = parseInt(match[1], 10);
+    const quantity = parseInt(amountStr, 10);
 
     if (isNaN(quantity) || quantity <= 0) {
       this.messageQueueService.addMessage(

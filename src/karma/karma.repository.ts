@@ -5,7 +5,6 @@ import {
   Connection,
   FilterQuery,
   Model,
-  QueryOptions,
   UpdateQuery,
   Types,
   Document,
@@ -49,12 +48,13 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     senderId: Types.ObjectId;
     groupId: Types.ObjectId;
     incValue: number;
+    session?: ClientSession;
   }) {
-    const { senderId, groupId, incValue } = params;
+    const { senderId, groupId, incValue, session } = params;
     const filterQuery: FilterQuery<Karma> = { user: senderId, group: groupId };
     const updateQuery: UpdateQuery<Karma> =
       incValue === 1 ? { $inc: { givenKarma: 1 } } : { $inc: { givenHate: 1 } };
-    return this.upsert(filterQuery, updateQuery);
+    return this.upsert(filterQuery, updateQuery, { session });
   }
 
   async updateReceiverKarma(params: {
@@ -62,8 +62,9 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     groupId: Types.ObjectId;
     incValue: number;
     historyEntry: KarmaHistoryPayload;
+    session?: ClientSession;
   }) {
-    const { receiverId, groupId, incValue, historyEntry } = params;
+    const { receiverId, groupId, incValue, historyEntry, session } = params;
     const filterQuery: FilterQuery<Karma> = {
       user: receiverId,
       group: groupId,
@@ -72,7 +73,7 @@ export class KarmaRepository extends AbstractRepository<Karma> {
       $inc: { karma: incValue },
       $push: { history: historyEntry },
     };
-    return this.upsert(filterQuery, updateQuery);
+    return this.upsert(filterQuery, updateQuery, { session });
   }
 
   async findTopKarma(params: {
@@ -215,15 +216,6 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     return this.model.aggregate<T>(pipeline);
   }
 
-  async findOneAndUpdateWithSession(params: {
-    filterQuery: FilterQuery<Karma>;
-    updateQuery: UpdateQuery<Karma>;
-    options: QueryOptions & { session: ClientSession };
-  }) {
-    const { filterQuery, updateQuery, options } = params;
-    return this.model.findOneAndUpdate(filterQuery, updateQuery, options);
-  }
-
   async executeKarmaTransferInTransaction(params: {
     senderKarmaDoc: KarmaDocument;
     receiverId: Types.ObjectId;
@@ -231,7 +223,7 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     session: ClientSession;
     senderHistory: KarmaHistoryPayload;
     receiverHistory: KarmaHistoryPayload;
-  }): Promise<{ senderKarma: KarmaDocument; receiverKarma: KarmaDocument }> {
+  }): Promise<{ senderKarma: KarmaDocument; receiverKarma: Karma }> {
     const {
       senderKarmaDoc,
       receiverId,
@@ -245,16 +237,16 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     senderKarmaDoc.history.push(senderHistory as unknown as KarmaHistory);
     const savedSenderPromise = senderKarmaDoc.save({ session });
 
-    const receiverUpdatePromise = this.findOneAndUpdateWithSession({
-      filterQuery: { user: receiverId, group: senderKarmaDoc.group },
-      updateQuery: {
+    const receiverUpdatePromise = this.upsert(
+      { user: receiverId, group: senderKarmaDoc.group },
+      {
         $inc: { karma: quantity },
         $push: {
           history: receiverHistory,
         },
       },
-      options: { upsert: true, new: true, session },
-    });
+      { session },
+    );
 
     const [savedSenderDoc, updatedReceiverDoc] = await Promise.all([
       savedSenderPromise,
@@ -305,14 +297,19 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     return hasActorId && hasActorFirstName && hasActorTelegramId;
   }
 
-  async populateUsers(documents: KarmaDocument[]): Promise<PopulatedKarma[]> {
+  async populateUsers(
+    documents: (KarmaDocument | Karma)[],
+  ): Promise<PopulatedKarma[]> {
     const populatedDocs = await this.model.populate(documents, {
       path: 'user',
       select: 'userId firstName lastName userName',
     });
 
     return populatedDocs.map(
-      (doc) => doc.toObject() as unknown as PopulatedKarma,
+      (doc) =>
+        (doc instanceof Document
+          ? doc.toObject()
+          : doc) as unknown as PopulatedKarma,
     );
   }
 }

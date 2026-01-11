@@ -31,11 +31,12 @@ export class KarmaService {
     context?: { messageId?: number; messageDate?: number };
   }) {
     const { senderData, receiverData, chatData, incValue, context } = params;
-    const [groupDoc, senderUserDoc, receiverUserDoc] = await Promise.all([
-      this.groupsService.findOrCreate(chatData),
-      this.usersService.findOrCreate(senderData),
-      this.usersService.findOrCreate(receiverData),
-    ]);
+    const { groupDoc, senderUserDoc, receiverUserDoc } =
+      await this.ensureEntities(chatData, senderData, receiverData);
+
+    if (!receiverUserDoc) {
+      throw new Error('Receiver not found');
+    }
 
     const historyEntry = this.buildHistoryEntry({
       actor: senderUserDoc,
@@ -45,29 +46,33 @@ export class KarmaService {
       context,
     });
 
-    const [, receiverKarma] = await Promise.all([
-      this.karmaRepository.updateSenderKarma({
-        senderId: senderUserDoc._id,
-        groupId: groupDoc._id,
-        incValue,
-      }),
-      this.karmaRepository.updateReceiverKarma({
-        receiverId: receiverUserDoc._id,
-        groupId: groupDoc._id,
-        incValue,
-        historyEntry,
-      }),
-    ]);
+    return this.karmaRepository.runInTransaction(async (session) => {
+      const [, receiverKarma] = await Promise.all([
+        this.karmaRepository.updateSenderKarma({
+          senderId: senderUserDoc._id,
+          groupId: groupDoc._id,
+          incValue,
+          session,
+        }),
+        this.karmaRepository.updateReceiverKarma({
+          receiverId: receiverUserDoc._id,
+          groupId: groupDoc._id,
+          incValue,
+          historyEntry,
+          session,
+        }),
+      ]);
 
-    if (!receiverKarma) {
-      throw new Error('Failed to update receiver karma.');
-    }
+      if (!receiverKarma) {
+        throw new Error('Failed to update receiver karma.');
+      }
 
-    const receiverName = receiverUserDoc.userName
-      ? `@${receiverUserDoc.userName}`
-      : receiverUserDoc.firstName;
+      const receiverName = receiverUserDoc.userName
+        ? `@${receiverUserDoc.userName}`
+        : receiverUserDoc.firstName;
 
-    return { receiverName, newKarma: receiverKarma.karma };
+      return { receiverName, newKarma: receiverKarma.karma };
+    });
   }
 
   public async transferKarma(params: {
@@ -78,51 +83,51 @@ export class KarmaService {
     context?: { messageId?: number; messageDate?: number };
   }): Promise<{ senderKarma: PopulatedKarma; receiverKarma: PopulatedKarma }> {
     const { senderData, receiverData, chatData, quantity, context } = params;
-    const [groupDoc, senderUserDoc, receiverUserDoc] = await Promise.all([
-      this.groupsService.findOrCreate(chatData),
-      this.usersService.findOrCreate(senderData),
-      this.usersService.findOrCreate(receiverData),
-    ]);
+    const { groupDoc, senderUserDoc, receiverUserDoc } =
+      await this.ensureEntities(chatData, senderData, receiverData);
 
-    const session = await this.karmaRepository.startTransaction();
-    try {
-      const senderKarmaDoc =
-        await this.karmaRepository.findOneByUserAndGroupForTransaction({
-          userId: senderUserDoc._id,
-          groupId: groupDoc._id,
-          session,
+    if (!receiverUserDoc) {
+      throw new Error('Receiver not found');
+    }
+
+    const { senderKarma, receiverKarma } =
+      await this.karmaRepository.runInTransaction(async (session) => {
+        const senderKarmaDoc =
+          await this.karmaRepository.findOneByUserAndGroupForTransaction({
+            userId: senderUserDoc._id,
+            groupId: groupDoc._id,
+            session,
+          });
+
+        if (!senderKarmaDoc) {
+          throw new BadRequestException(
+            `You don't have enough karma. Your current karma is 0.`,
+          );
+        }
+
+        this.validateKarmaBalance(senderKarmaDoc.karma, quantity);
+
+        const historyTimestamp = this.resolveTimestamp(context);
+
+        const senderHistory = this.buildHistoryEntry({
+          actor: senderUserDoc,
+          target: receiverUserDoc,
+          karmaChange: -quantity,
+          chatId: chatData.id,
+          context,
+          timestampOverride: historyTimestamp,
         });
 
-      if (!senderKarmaDoc || senderKarmaDoc.karma < quantity) {
-        throw new BadRequestException(
-          `You don't have enough karma. Your current karma is ${
-            senderKarmaDoc?.karma ?? 0
-          }.`,
-        );
-      }
+        const receiverHistory = this.buildHistoryEntry({
+          actor: senderUserDoc,
+          target: receiverUserDoc,
+          karmaChange: quantity,
+          chatId: chatData.id,
+          context,
+          timestampOverride: historyTimestamp,
+        });
 
-      const historyTimestamp = this.resolveTimestamp(context);
-
-      const senderHistory = this.buildHistoryEntry({
-        actor: senderUserDoc,
-        target: receiverUserDoc,
-        karmaChange: -quantity,
-        chatId: chatData.id,
-        context,
-        timestampOverride: historyTimestamp,
-      });
-
-      const receiverHistory = this.buildHistoryEntry({
-        actor: senderUserDoc,
-        target: receiverUserDoc,
-        karmaChange: quantity,
-        chatId: chatData.id,
-        context,
-        timestampOverride: historyTimestamp,
-      });
-
-      const { senderKarma, receiverKarma } =
-        await this.karmaRepository.executeKarmaTransferInTransaction({
+        return this.karmaRepository.executeKarmaTransferInTransaction({
           senderKarmaDoc,
           receiverId: receiverUserDoc._id,
           quantity,
@@ -130,22 +135,42 @@ export class KarmaService {
           senderHistory,
           receiverHistory,
         });
+      });
 
-      await session.commitTransaction();
+    const [populatedSender, populatedReceiver] =
+      await this.karmaRepository.populateUsers([senderKarma, receiverKarma]);
 
-      const [populatedSender, populatedReceiver] =
-        await this.karmaRepository.populateUsers([senderKarma, receiverKarma]);
+    return {
+      senderKarma: populatedSender,
+      receiverKarma: populatedReceiver,
+    };
+  }
 
-      return {
-        senderKarma: populatedSender,
-        receiverKarma: populatedReceiver,
-      };
-    } catch (error) {
-      await session.abortTransaction();
-      this.logger.error(`Transaction aborted due to error: ${error}`);
-      throw error;
-    } finally {
-      await session.endSession();
+  private async ensureEntities(
+    chatData: ITelegramChat,
+    senderData: ITelegramUser,
+    receiverData?: ITelegramUser,
+  ) {
+    const groupPromise = this.groupsService.findOrCreate(chatData);
+    const senderPromise = this.usersService.findOrCreate(senderData);
+    const receiverPromise = receiverData
+      ? this.usersService.findOrCreate(receiverData)
+      : Promise.resolve(undefined);
+
+    const [groupDoc, senderUserDoc, receiverUserDoc] = await Promise.all([
+      groupPromise,
+      senderPromise,
+      receiverPromise,
+    ]);
+
+    return { groupDoc, senderUserDoc, receiverUserDoc };
+  }
+
+  private validateKarmaBalance(currentKarma: number, requiredKarma: number) {
+    if (currentKarma < requiredKarma) {
+      throw new BadRequestException(
+        `You don't have enough karma. Your current karma is ${currentKarma}.`,
+      );
     }
   }
 

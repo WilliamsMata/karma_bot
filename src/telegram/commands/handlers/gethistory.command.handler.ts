@@ -20,13 +20,15 @@ export class GetHistoryCommandHandler
   extends BaseKarmaCommandHandler
   implements ITextCommandHandler
 {
-  command = /^\/gethistory(?:@\w+)?\s+(.+)$/;
+  command = /^\/gethistory(?:@\w+)?(?:\s+(.*))?$/;
 
   async execute(ctx: TextCommandContext): Promise<void> {
     const language = ctx.language;
 
     const match = ctx.message.text.match(this.command);
-    if (!match) {
+    const input = match?.[1]?.trim();
+
+    if (!input) {
       this.messageQueueService.addMessage(
         ctx.chat.id,
         buildGetHistoryUsageMessage(language),
@@ -34,7 +36,6 @@ export class GetHistoryCommandHandler
       return;
     }
 
-    const input = match[1].trim();
     try {
       const karma = await this.karmaService.findKarmaByUserQuery({
         input,
