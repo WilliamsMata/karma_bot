@@ -1,32 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { KarmaService } from '../../../karma/karma.service';
-import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
 import { formatUsernameForDisplay } from '../command.helpers';
-import { TelegramLanguageService } from '../../shared/telegram-language.service';
 import {
   TopReceivedPeriod,
   buildTopReceivedEmptyMessage,
   buildTopReceivedErrorMessage,
   buildTopReceivedMessage,
 } from '../../dictionary/top-received.dictionary';
-import { MessageQueueService } from '../../shared/message-queue.service';
+import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()
-export class TopReceivedCommandHandler implements ITextCommandHandler {
+export class TopReceivedCommandHandler
+  extends BaseKarmaCommandHandler
+  implements ITextCommandHandler
+{
   private readonly logger = new Logger(TopReceivedCommandHandler.name);
   command = /^\/(today|month|year)/;
-
-  constructor(
-    private readonly karmaService: KarmaService,
-    private readonly keyboardService: TelegramKeyboardService,
-    private readonly languageService: TelegramLanguageService,
-    private readonly messageQueueService: MessageQueueService,
-  ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
     const match = ctx.message.text.match(this.command);

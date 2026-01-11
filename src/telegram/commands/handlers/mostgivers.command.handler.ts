@@ -1,31 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { KarmaService } from '../../../karma/karma.service';
-import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
 import { formatUsernameForDisplay } from '../command.helpers';
-import { TelegramLanguageService } from '../../shared/telegram-language.service';
 import {
   buildMostGiversEmptyNegative,
   buildMostGiversEmptyPositive,
   buildMostGiversNegativeMessage,
   buildMostGiversPositiveMessage,
 } from '../../dictionary/mostgivers.dictionary';
-import { MessageQueueService } from '../../shared/message-queue.service';
+import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()
-export class MostGiversCommandHandler implements ITextCommandHandler {
+export class MostGiversCommandHandler
+  extends BaseKarmaCommandHandler
+  implements ITextCommandHandler
+{
   command = 'mostgivers';
-
-  constructor(
-    private readonly karmaService: KarmaService,
-    private readonly keyboardService: TelegramKeyboardService,
-    private readonly languageService: TelegramLanguageService,
-    private readonly messageQueueService: MessageQueueService,
-  ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
     const language = await this.languageService.resolveLanguage(ctx.chat);

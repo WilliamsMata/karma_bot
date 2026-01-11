@@ -31,11 +31,11 @@ import {
   buildSettingsUnsupportedLanguageMessage,
   resolveSettingsLanguageLabel,
 } from '../../dictionary/settings.dictionary';
-import { TelegramLanguageService } from '../../shared/telegram-language.service';
 import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
+import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 const COOLDOWN_OPTIONS = [30, 60, 120, 300, 600];
 const SETTINGS_MENU_ROOT = 'settings:menu:main';
@@ -44,15 +44,19 @@ const SETTINGS_MENU_LANGUAGE = 'settings:menu:language';
 const SETTINGS_CLOSE = 'settings:close';
 
 @Injectable()
-export class SettingsCommandHandler implements ITextCommandHandler {
+export class SettingsCommandHandler
+  extends BaseKarmaCommandHandler
+  implements ITextCommandHandler
+{
   command = 'settings';
   private readonly logger = new Logger(SettingsCommandHandler.name);
 
   constructor(
     private readonly groupsService: GroupsService,
     private readonly groupSettingsService: GroupSettingsService,
-    private readonly languageService: TelegramLanguageService,
-  ) {}
+  ) {
+    super();
+  }
 
   register(bot: Telegraf<TelegrafContext<Update>>) {
     bot.action(SETTINGS_MENU_ROOT, async (ctx) => {
@@ -274,7 +278,10 @@ export class SettingsCommandHandler implements ITextCommandHandler {
     const userLanguage = this.languageService.resolveLanguageFromUser(ctx.from);
 
     if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') {
-      await ctx.reply(buildSettingsGroupOnlyMessage(userLanguage));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildSettingsGroupOnlyMessage(userLanguage),
+      );
       return;
     }
 
@@ -285,7 +292,10 @@ export class SettingsCommandHandler implements ITextCommandHandler {
     );
 
     if (!isAdmin) {
-      await ctx.reply(buildSettingsAdminOnlyMessage(userLanguage));
+      this.messageQueueService.addMessage(
+        ctx.chat.id,
+        buildSettingsAdminOnlyMessage(userLanguage),
+      );
       return;
     }
 
@@ -304,7 +314,8 @@ export class SettingsCommandHandler implements ITextCommandHandler {
       userLanguage,
     );
 
-    await ctx.reply(
+    this.messageQueueService.addMessage(
+      ctx.chat.id,
       buildSettingsMainMenuMessage(userLanguage, {
         cooldownSeconds: cooldown,
         languageLabel,

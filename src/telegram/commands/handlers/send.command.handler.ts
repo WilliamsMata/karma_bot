@@ -1,13 +1,10 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { KarmaService } from '../../../karma/karma.service';
-import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
 import { formatUsernameForDisplay } from '../command.helpers';
-import { TelegramLanguageService } from '../../shared/telegram-language.service';
 import {
   buildSendBotTransferMessage,
   buildSendCriticalErrorMessage,
@@ -17,19 +14,15 @@ import {
   buildSendSuccessMessage,
   buildSendUsageMessage,
 } from '../../dictionary/send.dictionary';
-import { MessageQueueService } from '../../shared/message-queue.service';
+import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()
-export class SendCommandHandler implements ITextCommandHandler {
+export class SendCommandHandler
+  extends BaseKarmaCommandHandler
+  implements ITextCommandHandler
+{
   private readonly logger = new Logger(SendCommandHandler.name);
   command = /^\/send(?:@\w+)?\s+(\d+)$/;
-
-  constructor(
-    private readonly karmaService: KarmaService,
-    private readonly keyboardService: TelegramKeyboardService,
-    private readonly languageService: TelegramLanguageService,
-    private readonly messageQueueService: MessageQueueService,
-  ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
     const language = await this.languageService.resolveLanguage(ctx.chat);

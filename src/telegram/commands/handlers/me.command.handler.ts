@@ -1,26 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { KarmaService } from '../../../karma/karma.service';
-import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
 import { buildMeKarmaMessage } from '../../dictionary/me.dictionary';
-import { TelegramLanguageService } from '../../shared/telegram-language.service';
-import { MessageQueueService } from '../../shared/message-queue.service';
+import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()
-export class MeCommandHandler implements ITextCommandHandler {
+export class MeCommandHandler
+  extends BaseKarmaCommandHandler
+  implements ITextCommandHandler
+{
   private readonly logger = new Logger(MeCommandHandler.name);
   readonly command = 'me';
-
-  constructor(
-    private readonly karmaService: KarmaService,
-    private readonly keyboardService: TelegramKeyboardService,
-    private readonly languageService: TelegramLanguageService,
-    private readonly messageQueueService: MessageQueueService,
-  ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
     const user = ctx.from;

@@ -1,28 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   DEFAULT_COOLDOWN_SECONDS,
   GroupSettingsService,
 } from '../../../groups/group-settings.service';
 import { buildHelpMessage } from '../../dictionary/help.dictionary';
-import { TelegramLanguageService } from '../../shared/telegram-language.service';
+import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
-import { MessageQueueService } from '../../shared/message-queue.service';
 
 @Injectable()
-export class HelpCommandHandler implements ITextCommandHandler {
+export class HelpCommandHandler
+  extends BaseKarmaCommandHandler
+  implements ITextCommandHandler
+{
   command = 'help';
 
-  constructor(
-    private readonly keyboardService: TelegramKeyboardService,
-    private readonly groupSettingsService: GroupSettingsService,
-    private readonly languageService: TelegramLanguageService,
-    private readonly messageQueueService: MessageQueueService,
-  ) {}
+  constructor(private readonly groupSettingsService: GroupSettingsService) {
+    super();
+  }
 
   async handle(ctx: TextCommandContext): Promise<void> {
     const chat = ctx.chat;

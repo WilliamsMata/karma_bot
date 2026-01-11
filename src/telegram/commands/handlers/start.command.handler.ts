@@ -6,26 +6,26 @@ import {
   ITextCommandHandler,
   TextCommandContext,
 } from 'src/telegram/telegram.types';
-import { TelegramLanguageService } from '../../shared/telegram-language.service';
 import {
   buildStartBotNotConfiguredMessage,
   buildStartButtonLabel,
   buildStartMessage,
 } from '../../dictionary/start.dictionary';
-import { MessageQueueService } from '../../shared/message-queue.service';
+import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()
-export class StartCommandHandler implements ITextCommandHandler {
+export class StartCommandHandler
+  extends BaseKarmaCommandHandler
+  implements ITextCommandHandler
+{
   command = 'start';
   private readonly logger = new Logger(StartCommandHandler.name);
 
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly languageService: TelegramLanguageService,
-    private readonly messageQueueService: MessageQueueService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {
+    super();
+  }
 
-  async handle(ctx: TextCommandContext): Promise<void> {
+  handle(ctx: TextCommandContext): Promise<void> {
     const language = this.languageService.resolveLanguageFromUser(ctx.from);
     const botUsernameFromEnv = this.configService.get<string>(
       'TELEGRAM_BOT_USERNAME',
@@ -37,7 +37,7 @@ export class StartCommandHandler implements ITextCommandHandler {
         ctx.chat.id,
         buildStartBotNotConfiguredMessage(language),
       );
-      return;
+      return Promise.resolve();
     }
 
     const botUsername = botUsernameFromEnv.replace(/^@/, '');
@@ -53,5 +53,6 @@ export class StartCommandHandler implements ITextCommandHandler {
     };
 
     this.messageQueueService.addMessage(ctx.chat.id, message, extra);
+    return Promise.resolve();
   }
 }

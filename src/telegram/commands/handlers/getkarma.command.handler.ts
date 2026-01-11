@@ -1,6 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { KarmaService } from '../../../karma/karma.service';
-import { TelegramKeyboardService } from '../../shared/telegram-keyboard.service';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import {
   ITextCommandHandler,
@@ -13,20 +11,15 @@ import {
   buildGetKarmaSuccessMessage,
   buildGetKarmaUsageMessage,
 } from '../../dictionary/get-karma.dictionary';
-import { TelegramLanguageService } from '../../shared/telegram-language.service';
-import { MessageQueueService } from '../../shared/message-queue.service';
+import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()
-export class GetKarmaCommandHandler implements ITextCommandHandler {
+export class GetKarmaCommandHandler
+  extends BaseKarmaCommandHandler
+  implements ITextCommandHandler
+{
   private readonly logger = new Logger(GetKarmaCommandHandler.name);
   command = /^\/getkarma(?:@\w+)?\s+(.+)$/;
-
-  constructor(
-    private readonly karmaService: KarmaService,
-    private readonly keyboardService: TelegramKeyboardService,
-    private readonly languageService: TelegramLanguageService,
-    private readonly messageQueueService: MessageQueueService,
-  ) {}
 
   async handle(ctx: TextCommandContext): Promise<void> {
     const match = ctx.message.text.match(this.command);

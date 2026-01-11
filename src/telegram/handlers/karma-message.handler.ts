@@ -2,8 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import { User, Chat } from 'telegraf/types';
 import * as NodeCache from 'node-cache';
-import { KarmaService } from '../../karma/karma.service';
-import { TelegramKeyboardService } from '../shared/telegram-keyboard.service';
 import { TextCommandContext } from '../telegram.types';
 import {
   GroupSettingsService,
@@ -14,23 +12,18 @@ import {
   buildKarmaCooldownMessage,
   buildKarmaSuccessMessage,
 } from '../dictionary/karma-message.dictionary';
-import { TelegramLanguageService } from '../shared/telegram-language.service';
-import { MessageQueueService } from '../shared/message-queue.service';
+import { BaseKarmaCommandHandler } from '../commands/handlers/base.karma.command.handler';
 
 const karmaCooldownCache = new NodeCache();
 const KARMA_REGEX = /(^|\s)(\+|-)1(\s|$)/;
 
 @Injectable()
-export class KarmaMessageHandler {
+export class KarmaMessageHandler extends BaseKarmaCommandHandler {
   private readonly logger = new Logger(KarmaMessageHandler.name);
 
-  constructor(
-    private readonly karmaService: KarmaService,
-    private readonly keyboardService: TelegramKeyboardService,
-    private readonly groupSettingsService: GroupSettingsService,
-    private readonly languageService: TelegramLanguageService,
-    private readonly messageQueueService: MessageQueueService,
-  ) {}
+  constructor(private readonly groupSettingsService: GroupSettingsService) {
+    super();
+  }
 
   public isApplicable(text: string): boolean {
     return KARMA_REGEX.test(text);
@@ -70,7 +63,7 @@ export class KarmaMessageHandler {
       const cacheKey = this.getCooldownCacheKey(chat.id, sender.id);
       karmaCooldownCache.set(cacheKey, true, cooldownSeconds);
 
-      await this.sendSuccessResponse(
+      this.sendSuccessResponse(
         ctx,
         language,
         result.receiverName,
@@ -145,12 +138,12 @@ export class KarmaMessageHandler {
     return `${chatId}:${userId}`;
   }
 
-  private async sendSuccessResponse(
+  private sendSuccessResponse(
     ctx: TextCommandContext,
     language: SupportedLanguage,
     receiverName: string,
     newKarma: number,
-  ): Promise<void> {
+  ): void {
     const keyboard = this.keyboardService.getGroupWebAppKeyboard(
       ctx.chat,
       language,
