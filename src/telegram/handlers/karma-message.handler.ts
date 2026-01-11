@@ -23,7 +23,7 @@ export class KarmaMessageHandler
   extends BaseKarmaCommandHandler
   implements OnModuleInit
 {
-  command = /^$/; // Not used by standard command dispatcher but required by interface
+  command = /^$/;
 
   constructor() {
     super();
@@ -50,14 +50,10 @@ export class KarmaMessageHandler
     const language = ctx.language;
 
     try {
-      // Guards have already run and validated reply, self, bot, and cooldown.
-      // We can safely access sender, receiver, etc.
-      // But we need to define them for the logic.
-
       const sender = ctx.from;
       const receiver = ctx.message.reply_to_message!.from!;
       const chat = ctx.chat;
-      const cooldownSeconds = ctx.groupSettings?.cooldownSeconds ?? 60; // Default should be handled
+      const cooldownSeconds = ctx.groupSettings?.cooldownSeconds ?? 60;
 
       const match = ctx.message.text.match(KARMA_REGEX)!;
       const karmaValue = match[2] === '+' ? 1 : -1;

@@ -8,7 +8,7 @@ import { formatUsernameForDisplay } from '../command.helpers';
 import {
   buildTopEmptyMessage,
   buildTopMessage,
-} from '../../dictionary/top.dictionary';
+} from '../../dictionary/leaderboard.dictionary';
 import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()
@@ -47,7 +47,7 @@ export class TopCommandHandler
     const entries = topUsers.map((userKarma, index) => ({
       position: index + 1,
       name: formatUsernameForDisplay(userKarma.user),
-      karma: userKarma.karma ?? 0,
+      value: userKarma.karma ?? 0,
     }));
 
     const message = buildTopMessage(language, entries);

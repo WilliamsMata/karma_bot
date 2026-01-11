@@ -1,11 +1,6 @@
 import type { SupportedLanguage } from '../../groups/group-settings.service';
 import { PartialLocalizedDictionary, resolveLocalizedValue } from './types';
-import {
-  formatDurationEnglish,
-  formatDurationSpanish,
-  formatDurationRussian,
-  formatDurationPersian,
-} from './localization.helpers';
+import { formatDuration } from './localization.helpers';
 
 export interface HelpMessageContext {
   cooldownSeconds: number;
@@ -15,7 +10,7 @@ type HelpMessageFactory = (context: HelpMessageContext) => string;
 
 const helpMessageDictionary: PartialLocalizedDictionary<HelpMessageFactory> = {
   en: ({ cooldownSeconds }) => {
-    const cooldownText = formatDurationEnglish(cooldownSeconds);
+    const cooldownText = formatDuration(cooldownSeconds, 'en');
     return `
 Hello! I'm the Karma Bot. Here's how you can interact with me:
 
@@ -49,7 +44,7 @@ Hello! I'm the Karma Bot. Here's how you can interact with me:
     `.trim();
   },
   es: ({ cooldownSeconds }) => {
-    const cooldownText = formatDurationSpanish(cooldownSeconds);
+    const cooldownText = formatDuration(cooldownSeconds, 'es');
     return `
 ¡Hola! Soy Karma Bot. Así puedes interactuar conmigo:
 
@@ -83,7 +78,7 @@ Hello! I'm the Karma Bot. Here's how you can interact with me:
     `.trim();
   },
   ru: ({ cooldownSeconds }) => {
-    const cooldownText = formatDurationRussian(cooldownSeconds);
+    const cooldownText = formatDuration(cooldownSeconds, 'ru');
     return `
 Привет! Я Karma Bot. Вот как ты можешь со мной взаимодействовать:
 
@@ -117,7 +112,7 @@ Hello! I'm the Karma Bot. Here's how you can interact with me:
     `.trim();
   },
   fa: ({ cooldownSeconds }) => {
-    const cooldownText = formatDurationPersian(cooldownSeconds);
+    const cooldownText = formatDuration(cooldownSeconds, 'fa');
     return `
 سلام! من کارما بات هستم. اینطوری می‌تونی با من کار کنی:
 

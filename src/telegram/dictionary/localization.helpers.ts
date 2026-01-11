@@ -1,4 +1,23 @@
-export function formatDurationEnglish(seconds: number): string {
+import { SupportedLanguage } from '../../groups/group-settings.service';
+
+export function formatDuration(
+  seconds: number,
+  language: SupportedLanguage,
+): string {
+  switch (language) {
+    case 'es':
+      return formatDurationSpanish(seconds);
+    case 'ru':
+      return formatDurationRussian(seconds);
+    case 'fa':
+      return formatDurationPersian(seconds);
+    case 'en':
+    default:
+      return formatDurationEnglish(seconds);
+  }
+}
+
+function formatDurationEnglish(seconds: number): string {
   if (seconds % 60 === 0) {
     const minutes = seconds / 60;
     return minutes === 1 ? '1 minute' : `${minutes} minutes`;
@@ -6,7 +25,7 @@ export function formatDurationEnglish(seconds: number): string {
   return seconds === 1 ? '1 second' : `${seconds} seconds`;
 }
 
-export function formatDurationSpanish(seconds: number): string {
+function formatDurationSpanish(seconds: number): string {
   if (seconds % 60 === 0) {
     const minutes = seconds / 60;
     return minutes === 1 ? '1 minuto' : `${minutes} minutos`;
@@ -14,7 +33,7 @@ export function formatDurationSpanish(seconds: number): string {
   return seconds === 1 ? '1 segundo' : `${seconds} segundos`;
 }
 
-export function formatDurationRussian(seconds: number): string {
+function formatDurationRussian(seconds: number): string {
   if (seconds % 60 === 0) {
     const minutes = seconds / 60;
     return `${minutes} ${getRussianPlural(minutes, 'минута', 'минуты', 'минут')}`;
@@ -22,7 +41,7 @@ export function formatDurationRussian(seconds: number): string {
   return `${seconds} ${getRussianPlural(seconds, 'секунда', 'секунды', 'секунд')}`;
 }
 
-export function formatDurationPersian(seconds: number): string {
+function formatDurationPersian(seconds: number): string {
   if (seconds % 60 === 0) {
     const minutes = seconds / 60;
     return minutes === 1 ? '1 دقیقه' : `${minutes} دقیقه`;

@@ -1,12 +1,6 @@
 import type { SupportedLanguage } from '../../groups/group-settings.service';
 import { PartialLocalizedDictionary, resolveLocalizedValue } from './types';
-import {
-  formatDurationEnglish,
-  formatDurationSpanish,
-  formatDurationRussian,
-  formatDurationPersian,
-  getRussianPlural,
-} from './localization.helpers';
+import { formatDuration, getRussianPlural } from './localization.helpers';
 
 export interface KarmaSuccessContext {
   receiverName: string;
@@ -37,13 +31,13 @@ const karmaSuccessDictionary: PartialLocalizedDictionary<KarmaSuccessFactory> =
 const karmaCooldownDictionary: PartialLocalizedDictionary<KarmaCooldownFactory> =
   {
     en: ({ secondsLeft }) =>
-      `Please wait ${formatDurationEnglish(secondsLeft)} before giving karma again.`,
+      `Please wait ${formatDuration(secondsLeft, 'en')} before giving karma again.`,
     es: ({ secondsLeft }) =>
-      `Por favor espera ${formatDurationSpanish(secondsLeft)} antes de volver a dar karma.`,
+      `Por favor espera ${formatDuration(secondsLeft, 'es')} antes de volver a dar karma.`,
     ru: ({ secondsLeft }) =>
-      `Пожалуйста, подожди ${formatDurationRussian(secondsLeft)}, прежде чем снова давать карму.`,
+      `Пожалуйста, подожди ${formatDuration(secondsLeft, 'ru')}, прежде чем снова давать карму.`,
     fa: ({ secondsLeft }) =>
-      `لطفاً ${formatDurationPersian(secondsLeft)} صبر کن و بعد دوباره کارما بده.`,
+      `لطفاً ${formatDuration(secondsLeft, 'fa')} صبر کن و بعد دوباره کارما بده.`,
   };
 
 const karmaBotWarningDictionary: PartialLocalizedDictionary<string> = {

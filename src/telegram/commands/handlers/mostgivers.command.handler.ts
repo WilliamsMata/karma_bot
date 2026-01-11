@@ -10,7 +10,7 @@ import {
   buildMostGiversEmptyPositive,
   buildMostGiversNegativeMessage,
   buildMostGiversPositiveMessage,
-} from '../../dictionary/mostgivers.dictionary';
+} from '../../dictionary/leaderboard.dictionary';
 import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()

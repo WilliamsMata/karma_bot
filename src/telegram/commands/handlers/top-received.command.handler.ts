@@ -9,8 +9,8 @@ import {
   TopReceivedPeriod,
   buildTopReceivedEmptyMessage,
   buildTopReceivedErrorMessage,
-  buildTopReceivedMessage,
-} from '../../dictionary/top-received.dictionary';
+  buildTopReceivedLeaderboardMessage,
+} from '../../dictionary/leaderboard.dictionary';
 import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()
@@ -71,10 +71,14 @@ export class TopReceivedCommandHandler
       const entries = topUsers.map((user, index) => ({
         position: index + 1,
         name: formatUsernameForDisplay(user),
-        karma: user.totalKarmaReceived ?? 0,
+        value: user.totalKarmaReceived ?? 0,
       }));
 
-      const message = buildTopReceivedMessage(language, commandName, entries);
+      const message = buildTopReceivedLeaderboardMessage(
+        language,
+        commandName,
+        entries,
+      );
       this.messageQueueService.addMessage(ctx.chat.id, message, extra);
     } catch (error) {
       this.logger.error(`Error handling /${commandName}`, error);

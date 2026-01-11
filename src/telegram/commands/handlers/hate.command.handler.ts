@@ -6,10 +6,10 @@ import {
 } from 'src/telegram/telegram.types';
 import { formatUsernameForDisplay } from '../command.helpers';
 import {
-  HateEntry,
+  LeaderboardEntry,
   buildHateEmptyMessage,
   buildHateLeaderboardMessage,
-} from '../../dictionary/hate.dictionary';
+} from '../../dictionary/leaderboard.dictionary';
 import { BaseKarmaCommandHandler } from './base.karma.command.handler';
 
 @Injectable()
@@ -46,10 +46,10 @@ export class HateCommandHandler
       return;
     }
 
-    const entries: HateEntry[] = hatedUsers.map((userKarma, index) => ({
+    const entries: LeaderboardEntry[] = hatedUsers.map((userKarma, index) => ({
       position: index + 1,
       name: formatUsernameForDisplay(userKarma.user),
-      karma: userKarma.karma,
+      value: userKarma.karma,
     }));
 
     const message = buildHateLeaderboardMessage(language, entries);
