@@ -235,9 +235,9 @@ export class KarmaRepository extends AbstractRepository<Karma> {
     this.sanitizeHistoryEntries(senderKarmaDoc);
     senderKarmaDoc.karma -= quantity;
     senderKarmaDoc.history.push(senderHistory as unknown as KarmaHistory);
-    const savedSenderPromise = senderKarmaDoc.save({ session });
+    const savedSenderDoc = await senderKarmaDoc.save({ session });
 
-    const receiverUpdatePromise = this.upsert(
+    const updatedReceiverDoc = await this.upsert(
       { user: receiverId, group: senderKarmaDoc.group },
       {
         $inc: { karma: quantity },
@@ -247,11 +247,6 @@ export class KarmaRepository extends AbstractRepository<Karma> {
       },
       { session },
     );
-
-    const [savedSenderDoc, updatedReceiverDoc] = await Promise.all([
-      savedSenderPromise,
-      receiverUpdatePromise,
-    ]);
 
     if (!updatedReceiverDoc) {
       throw new Error(

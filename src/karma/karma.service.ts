@@ -47,21 +47,20 @@ export class KarmaService {
     });
 
     return this.karmaRepository.runInTransaction(async (session) => {
-      const [, receiverKarma] = await Promise.all([
-        this.karmaRepository.updateSenderKarma({
-          senderId: senderUserDoc._id,
-          groupId: groupDoc._id,
-          incValue,
-          session,
-        }),
-        this.karmaRepository.updateReceiverKarma({
-          receiverId: receiverUserDoc._id,
-          groupId: groupDoc._id,
-          incValue,
-          historyEntry,
-          session,
-        }),
-      ]);
+      await this.karmaRepository.updateSenderKarma({
+        senderId: senderUserDoc._id,
+        groupId: groupDoc._id,
+        incValue,
+        session,
+      });
+
+      const receiverKarma = await this.karmaRepository.updateReceiverKarma({
+        receiverId: receiverUserDoc._id,
+        groupId: groupDoc._id,
+        incValue,
+        historyEntry,
+        session,
+      });
 
       if (!receiverKarma) {
         throw new Error('Failed to update receiver karma.');

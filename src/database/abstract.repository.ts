@@ -110,14 +110,11 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
   async runInTransaction<T>(
     operation: (session: ClientSession) => Promise<T>,
   ): Promise<T> {
-    const session = await this.startTransaction();
+    const session = await this.connection.startSession();
     try {
-      const result = await operation(session);
-      await session.commitTransaction();
-      return result;
+      return await session.withTransaction(() => operation(session));
     } catch (error) {
-      await session.abortTransaction();
-      this.logger.error('Transaction aborted', error);
+      this.logger.error('Transaction failed', error);
       throw error;
     } finally {
       await session.endSession();
