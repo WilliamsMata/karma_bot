@@ -12,6 +12,13 @@ import { TopReceivedKarmaDto } from './dto/top-received-karma.dto';
 import { PopulatedKarma } from './karma.types';
 import { Types } from 'mongoose';
 import { User } from '../users/schemas/user.schema';
+import { AntispamService, SpamType } from '../antispam/antispam.service';
+import { SupportedLanguage } from '../groups/group-settings.service';
+import {
+  buildBannedUserMessage,
+  buildBurstSpamMessage,
+  buildDailySpamMessage,
+} from '../telegram/dictionary/antispam.dictionary';
 
 @Injectable()
 export class KarmaService {
@@ -21,6 +28,7 @@ export class KarmaService {
     private readonly karmaRepository: KarmaRepository,
     private readonly usersService: UsersService,
     private readonly groupsService: GroupsService,
+    private readonly antispamService: AntispamService,
   ) {}
 
   public async updateKarma(params: {
@@ -29,13 +37,74 @@ export class KarmaService {
     chatData: ITelegramChat;
     incValue: number;
     context?: { messageId?: number; messageDate?: number };
+    language?: SupportedLanguage;
   }) {
     const { senderData, receiverData, chatData, incValue, context } = params;
+    const language = params.language ?? 'en';
     const { groupDoc, senderUserDoc, receiverUserDoc } =
       await this.ensureEntities(chatData, senderData, receiverData);
 
     if (!receiverUserDoc) {
       throw new Error('Receiver not found');
+    }
+
+    // 1. Check if sender is banned
+    if (senderUserDoc.bannedUntil && senderUserDoc.bannedUntil > new Date()) {
+      throw new BadRequestException(
+        buildBannedUserMessage(language, {
+          bannedUntil: senderUserDoc.bannedUntil,
+        }),
+      );
+    }
+
+    // 2. Anti-Spam Check
+    const spamType = await this.antispamService.checkSpam(
+      senderUserDoc._id,
+      receiverUserDoc._id,
+    );
+
+    if (spamType) {
+      await this.antispamService.applyBan(senderData.id);
+
+      if (spamType === SpamType.BURST) {
+        const penaltyValue = -10;
+
+        // Penalty for Sender
+        const penaltySenderHistory = this.buildHistoryEntry({
+          actor: senderUserDoc,
+          target: senderUserDoc,
+          karmaChange: penaltyValue,
+          chatId: chatData.id,
+          context,
+        });
+
+        await this.karmaRepository.updateReceiverKarma({
+          receiverId: senderUserDoc._id,
+          groupId: groupDoc._id,
+          incValue: penaltyValue,
+          historyEntry: penaltySenderHistory,
+        });
+
+        // Penalty for Receiver
+        const penaltyReceiverHistory = this.buildHistoryEntry({
+          actor: senderUserDoc,
+          target: receiverUserDoc,
+          karmaChange: penaltyValue,
+          chatId: chatData.id,
+          context,
+        });
+
+        await this.karmaRepository.updateReceiverKarma({
+          receiverId: receiverUserDoc._id,
+          groupId: groupDoc._id,
+          incValue: penaltyValue,
+          historyEntry: penaltyReceiverHistory,
+        });
+
+        throw new BadRequestException(buildBurstSpamMessage(language));
+      }
+
+      throw new BadRequestException(buildDailySpamMessage(language));
     }
 
     const historyEntry = this.buildHistoryEntry({
@@ -46,32 +115,44 @@ export class KarmaService {
       context,
     });
 
-    return this.karmaRepository.runInTransaction(async (session) => {
-      await this.karmaRepository.updateSenderKarma({
-        senderId: senderUserDoc._id,
-        groupId: groupDoc._id,
-        incValue,
-        session,
-      });
+    const result = await this.karmaRepository.runInTransaction(
+      async (session) => {
+        await this.karmaRepository.updateSenderKarma({
+          senderId: senderUserDoc._id,
+          groupId: groupDoc._id,
+          incValue,
+          session,
+        });
 
-      const receiverKarma = await this.karmaRepository.updateReceiverKarma({
-        receiverId: receiverUserDoc._id,
-        groupId: groupDoc._id,
-        incValue,
-        historyEntry,
-        session,
-      });
+        const receiverKarma = await this.karmaRepository.updateReceiverKarma({
+          receiverId: receiverUserDoc._id,
+          groupId: groupDoc._id,
+          incValue,
+          historyEntry,
+          session,
+        });
 
-      if (!receiverKarma) {
-        throw new Error('Failed to update receiver karma.');
-      }
+        if (!receiverKarma) {
+          throw new Error('Failed to update receiver karma.');
+        }
 
-      const receiverName = receiverUserDoc.userName
-        ? `@${receiverUserDoc.userName}`
-        : receiverUserDoc.firstName;
+        const receiverName = receiverUserDoc.userName
+          ? `@${receiverUserDoc.userName}`
+          : receiverUserDoc.firstName;
 
-      return { receiverName, newKarma: receiverKarma.karma };
-    });
+        return { receiverName, newKarma: receiverKarma.karma };
+      },
+    );
+
+    // 3. Log Valid Transaction
+    await this.antispamService.logTransaction(
+      senderUserDoc._id,
+      receiverUserDoc._id,
+      groupDoc._id,
+      incValue === 1 ? 'KARMA' : 'HATE',
+    );
+
+    return result;
   }
 
   public async transferKarma(params: {

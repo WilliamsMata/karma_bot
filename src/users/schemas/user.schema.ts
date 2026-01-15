@@ -17,6 +17,9 @@ export class User extends AbstractDocument {
 
   @Prop()
   lastName?: string;
+
+  @Prop()
+  bannedUntil?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

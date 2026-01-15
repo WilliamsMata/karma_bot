@@ -26,4 +26,10 @@ export class UsersService {
   async count(): Promise<number> {
     return this.usersRepository.countDocuments();
   }
+
+  async banUser(userId: number, date: Date): Promise<User | null> {
+    this.logger.log(`Banning user ${userId} until ${date.toISOString()}`);
+
+    return await this.usersRepository.setBanStatus(userId, date);
+  }
 }

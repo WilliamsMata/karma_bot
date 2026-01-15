@@ -52,4 +52,8 @@ export class UsersRepository extends AbstractRepository<User> {
   async countDocuments(filterQuery: FilterQuery<User> = {}): Promise<number> {
     return this.model.countDocuments(filterQuery);
   }
+
+  async setBanStatus(userId: number, bannedUntil: Date): Promise<User | null> {
+    return this.findOneAndUpdate({ userId }, { bannedUntil });
+  }
 }

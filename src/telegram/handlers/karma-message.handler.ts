@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, BadRequestException } from '@nestjs/common';
 import NodeCache from 'node-cache';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import { TextCommandContext } from '../telegram.types';
@@ -67,6 +67,7 @@ export class KarmaMessageHandler
           messageId: ctx.message.message_id,
           messageDate: ctx.message.date,
         },
+        language: language,
       });
 
       const cacheKey = this.getCooldownCacheKey(chat.id, sender.id);
@@ -79,6 +80,12 @@ export class KarmaMessageHandler
         result.newKarma,
       );
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        await ctx.reply(error.message, {
+          reply_parameters: { message_id: ctx.message.message_id },
+        });
+        return;
+      }
       this.logger.error(
         `Error in karma update flow for message ${ctx.message.message_id}`,
         error,

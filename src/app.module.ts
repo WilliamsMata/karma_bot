@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { KarmaModule } from './karma/karma.module';
 import { KarmaApiModule } from './api/karma/karma-api.module';
 import { UsersApiModule } from './api/users/users-api.module';
+import { AntispamModule } from './antispam/antispam.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -31,6 +32,7 @@ import { APP_GUARD } from '@nestjs/core';
     TelegramModule,
     UsersModule,
     KarmaModule,
+    AntispamModule,
 
     // API modules for external access
     KarmaApiModule,
