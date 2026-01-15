@@ -7,10 +7,14 @@ import { Types } from 'mongoose';
 describe('AntispamService', () => {
   let service: AntispamService;
   let mockAntispamRepository: {
-    create: jest.Mock;
-    countTransactions: jest.Mock;
+    create: jest.MockedFunction<AntispamRepository['create']>;
+    countTransactions: jest.MockedFunction<
+      AntispamRepository['countTransactions']
+    >;
   };
-  let mockUsersService: { banUser: jest.Mock };
+  let mockUsersService: {
+    banUser: jest.MockedFunction<UsersService['banUser']>;
+  };
 
   beforeEach(async () => {
     mockAntispamRepository = {
@@ -43,9 +47,24 @@ describe('AntispamService', () => {
     expect(service).toBeDefined();
   });
 
+  it('logs a transaction', async () => {
+    const sourceUserId = new Types.ObjectId();
+    const targetUserId = new Types.ObjectId();
+    const groupId = new Types.ObjectId();
+
+    await service.logTransaction(sourceUserId, targetUserId, groupId, 'KARMA');
+
+    expect(mockAntispamRepository.create).toHaveBeenCalledWith({
+      sourceUserId,
+      targetUserId,
+      groupId,
+      type: 'KARMA',
+    });
+  });
+
   describe('checkSpam', () => {
     it('should return BURST if burst threshold is exceeded', async () => {
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(10); // Burst count
+      mockAntispamRepository.countTransactions.mockResolvedValueOnce(10);
 
       const result = await service.checkSpam(
         new Types.ObjectId(),
@@ -56,8 +75,8 @@ describe('AntispamService', () => {
     });
 
     it('should return DAILY_LIMIT if daily threshold is exceeded', async () => {
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(0); // Burst count okay
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(50); // Daily count limit
+      mockAntispamRepository.countTransactions.mockResolvedValueOnce(0);
+      mockAntispamRepository.countTransactions.mockResolvedValueOnce(50);
 
       const result = await service.checkSpam(
         new Types.ObjectId(),
@@ -68,8 +87,8 @@ describe('AntispamService', () => {
     });
 
     it('should return null if no spam detected', async () => {
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(2); // Burst count okay
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(20); // Daily count okay
+      mockAntispamRepository.countTransactions.mockResolvedValueOnce(2);
+      mockAntispamRepository.countTransactions.mockResolvedValueOnce(20);
 
       const result = await service.checkSpam(
         new Types.ObjectId(),
@@ -77,6 +96,51 @@ describe('AntispamService', () => {
       );
 
       expect(result).toBeNull();
+    });
+
+    it('uses correct windows for burst and daily checks', async () => {
+      jest.useFakeTimers();
+      const frozen = new Date('2024-01-01T00:00:00Z');
+      jest.setSystemTime(frozen);
+
+      const sourceUserId = new Types.ObjectId();
+      const targetUserId = new Types.ObjectId();
+
+      mockAntispamRepository.countTransactions.mockResolvedValueOnce(5);
+      mockAntispamRepository.countTransactions.mockResolvedValueOnce(60);
+
+      await service.checkSpam(sourceUserId, targetUserId);
+
+      const [burstFilter] = mockAntispamRepository.countTransactions.mock
+        .calls[0] as [
+        {
+          sourceUserId: Types.ObjectId;
+          targetUserId: Types.ObjectId;
+          timestamp: { $gte: Date };
+        },
+      ];
+      const [dailyFilter] = mockAntispamRepository.countTransactions.mock
+        .calls[1] as [
+        {
+          sourceUserId: Types.ObjectId;
+          targetUserId?: Types.ObjectId;
+          timestamp: { $gte: Date };
+        },
+      ];
+
+      expect(burstFilter.sourceUserId).toBe(sourceUserId);
+      expect(burstFilter.targetUserId).toBe(targetUserId);
+      expect(burstFilter.timestamp.$gte).toEqual(
+        new Date('2023-12-31T23:45:00.000Z'),
+      );
+
+      expect(dailyFilter.sourceUserId).toBe(sourceUserId);
+      expect(dailyFilter.targetUserId).toBeUndefined();
+      expect(dailyFilter.timestamp.$gte).toEqual(
+        new Date('2023-12-31T00:00:00.000Z'),
+      );
+
+      jest.useRealTimers();
     });
   });
 
