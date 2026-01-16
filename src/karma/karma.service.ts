@@ -68,6 +68,7 @@ export class KarmaService {
 
       if (spamType === SpamType.BURST) {
         const penaltyValue = -10;
+        const compensationValue = 10;
 
         // Penalty for Sender
         const penaltySenderHistory = this.buildHistoryEntry({
@@ -85,11 +86,19 @@ export class KarmaService {
           historyEntry: penaltySenderHistory,
         });
 
-        // Penalty for Receiver
-        const penaltyReceiverHistory = this.buildHistoryEntry({
+        // Determine Receiver outcome
+        // If they were spamming +1 (boosting), penalize receiver too.
+        // If they were spamming -1 (attacking), compensate receiver.
+        const isBoosting = incValue > 0;
+        const receiverKarmaChange = isBoosting
+          ? penaltyValue
+          : compensationValue;
+
+        // Penalty/Compensation for Receiver
+        const receiverHistory = this.buildHistoryEntry({
           actor: senderUserDoc,
           target: receiverUserDoc,
-          karmaChange: penaltyValue,
+          karmaChange: receiverKarmaChange,
           chatId: chatData.id,
           context,
         });
@@ -97,8 +106,8 @@ export class KarmaService {
         await this.karmaRepository.updateReceiverKarma({
           receiverId: receiverUserDoc._id,
           groupId: groupDoc._id,
-          incValue: penaltyValue,
-          historyEntry: penaltyReceiverHistory,
+          incValue: receiverKarmaChange,
+          historyEntry: receiverHistory,
         });
 
         throw new BadRequestException(buildBurstSpamMessage(language));

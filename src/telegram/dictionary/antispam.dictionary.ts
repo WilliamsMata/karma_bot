@@ -28,15 +28,25 @@ const dailySpamDictionary: PartialLocalizedDictionary<AntispamMessageFactory> =
     fa: () => 'اسپم شناسایی شد (DAILY LIMIT)! شما به مدت 24 ساعت بن شدید.',
   };
 
+const formatUtc = (date: Date | string, locale: string) => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return (
+    new Intl.DateTimeFormat(locale, {
+      dateStyle: 'medium',
+      timeStyle: 'medium',
+      timeZone: 'UTC',
+    }).format(d) + ' UTC'
+  );
+};
+
 const bannedUserDictionary: PartialLocalizedDictionary<AntispamBanFactory> = {
   en: ({ bannedUntil }) =>
-    `You are banned until ${typeof bannedUntil === 'string' ? bannedUntil : bannedUntil.toLocaleString()}.`,
+    `You are banned until ${formatUtc(bannedUntil, 'en-US')}.`,
   es: ({ bannedUntil }) =>
-    `Estás baneado hasta ${typeof bannedUntil === 'string' ? bannedUntil : bannedUntil.toLocaleString()}.`,
-  ru: ({ bannedUntil }) =>
-    `Вы забанены до ${typeof bannedUntil === 'string' ? bannedUntil : bannedUntil.toLocaleString()}.`,
+    `Estás baneado hasta el ${formatUtc(bannedUntil, 'es-ES')}.`,
+  ru: ({ bannedUntil }) => `Вы забанены до ${formatUtc(bannedUntil, 'ru-RU')}.`,
   fa: ({ bannedUntil }) =>
-    `شما تا ${typeof bannedUntil === 'string' ? bannedUntil : bannedUntil.toLocaleString()} بن هستید.`,
+    `شما تا ${formatUtc(bannedUntil, 'fa-IR')} بن هستید.`,
 };
 
 export function buildBurstSpamMessage(language: SupportedLanguage): string {

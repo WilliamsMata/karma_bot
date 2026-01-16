@@ -143,7 +143,7 @@ describe('KarmaService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('applies burst spam penalty and bans', async () => {
+    it('applies burst spam penalty (boosting: inc > 0) -> penalizes both', async () => {
       groupsService.findOrCreate.mockResolvedValue(groupDoc);
       const senderDoc = userDoc(10);
       const receiverDoc = userDoc(20);
@@ -166,7 +166,65 @@ describe('KarmaService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(applyBanMock).toHaveBeenCalledWith(sender.id);
-      expect(updateReceiverKarmaMock).toHaveBeenCalledTimes(2);
+
+      // Sender penalty
+      expect(updateReceiverKarmaMock).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          receiverId: senderDoc._id,
+          incValue: -10,
+        }),
+      );
+      // Receiver penalty
+      expect(updateReceiverKarmaMock).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          receiverId: receiverDoc._id,
+          incValue: -10,
+        }),
+      );
+    });
+
+    it('applies burst spam penalty (attacking: inc < 0) -> penalizes sender, compensates receiver', async () => {
+      groupsService.findOrCreate.mockResolvedValue(groupDoc);
+      const senderDoc = userDoc(10);
+      const receiverDoc = userDoc(20);
+      usersService.findOrCreate
+        .mockResolvedValueOnce(senderDoc)
+        .mockResolvedValueOnce(receiverDoc);
+      antispamService.checkSpam.mockResolvedValue(SpamType.BURST);
+
+      karmaRepository.updateReceiverKarma.mockResolvedValue(
+        karmaDoc({ user: receiverDoc._id, karma: 0 }),
+      );
+
+      await expect(
+        service.updateKarma({
+          senderData: sender,
+          receiverData: receiver,
+          chatData: chat,
+          incValue: -1,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(applyBanMock).toHaveBeenCalledWith(sender.id);
+
+      // Sender penalty
+      expect(updateReceiverKarmaMock).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          receiverId: senderDoc._id,
+          incValue: -10,
+        }),
+      );
+      // Receiver compensation
+      expect(updateReceiverKarmaMock).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          receiverId: receiverDoc._id,
+          incValue: 10,
+        }),
+      );
     });
 
     it('applies daily spam ban and throws', async () => {
