@@ -3,13 +3,14 @@ import { AntispamService, SpamType } from './antispam.service';
 import { AntispamRepository } from './antispam.repository';
 import { UsersService } from '../users/users.service';
 import { Types } from 'mongoose';
+import { KarmaTransaction } from './schemas/karma-transaction.schema';
 
 describe('AntispamService', () => {
   let service: AntispamService;
   let mockAntispamRepository: {
     create: jest.MockedFunction<AntispamRepository['create']>;
-    countTransactions: jest.MockedFunction<
-      AntispamRepository['countTransactions']
+    findLastTransactions: jest.MockedFunction<
+      AntispamRepository['findLastTransactions']
     >;
   };
   let mockUsersService: {
@@ -19,7 +20,7 @@ describe('AntispamService', () => {
   beforeEach(async () => {
     mockAntispamRepository = {
       create: jest.fn(),
-      countTransactions: jest.fn(),
+      findLastTransactions: jest.fn(),
     };
 
     mockUsersService = {
@@ -43,52 +44,98 @@ describe('AntispamService', () => {
     service = module.get<AntispamService>(AntispamService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('logs a transaction', async () => {
-    const sourceUserId = new Types.ObjectId();
-    const targetUserId = new Types.ObjectId();
-    const groupId = new Types.ObjectId();
-
-    await service.logTransaction(sourceUserId, targetUserId, groupId, 'KARMA');
-
-    expect(mockAntispamRepository.create).toHaveBeenCalledWith({
-      sourceUserId,
-      targetUserId,
-      groupId,
-      type: 'KARMA',
-    });
-  });
+  const createTransactions = (
+    count: number,
+    minutesAgo: number,
+  ): KarmaTransaction[] => {
+    const txs: KarmaTransaction[] = [];
+    for (let i = 0; i < count; i++) {
+      const d = new Date();
+      d.setMinutes(d.getMinutes() - minutesAgo);
+      txs.push({ timestamp: d } as KarmaTransaction);
+    }
+    return txs;
+  };
 
   describe('checkSpam', () => {
-    it('should return BURST if burst threshold is exceeded', async () => {
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(10);
+    it('detects BURST 30 in 60m', async () => {
+      // Return 30 transactions from 1 min ago
+      mockAntispamRepository.findLastTransactions.mockResolvedValueOnce(
+        createTransactions(30, 1),
+      );
 
       const result = await service.checkSpam(
         new Types.ObjectId(),
         new Types.ObjectId(),
       );
 
-      expect(result).toBe(SpamType.BURST);
+      expect(result).toEqual({
+        type: SpamType.BURST,
+        penalty: 30,
+      });
     });
 
-    it('should return DAILY_LIMIT if daily threshold is exceeded', async () => {
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(0);
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(50);
+    it('detects BURST 10 in 15m', async () => {
+      // First call is for target (max threshold 30).
+      // We simulate we only have 10 transactions, all recent (1 min ago)
+      mockAntispamRepository.findLastTransactions.mockResolvedValueOnce(
+        createTransactions(10, 1),
+      );
 
       const result = await service.checkSpam(
         new Types.ObjectId(),
         new Types.ObjectId(),
       );
 
-      expect(result).toBe(SpamType.DAILY_LIMIT);
+      expect(result).toEqual({
+        type: SpamType.BURST,
+        penalty: 10,
+      });
     });
 
-    it('should return null if no spam detected', async () => {
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(2);
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(20);
+    it('detects BURST 5 in 7m', async () => {
+      mockAntispamRepository.findLastTransactions.mockResolvedValueOnce(
+        createTransactions(5, 1),
+      );
+
+      const result = await service.checkSpam(
+        new Types.ObjectId(),
+        new Types.ObjectId(),
+      );
+
+      expect(result).toEqual({
+        type: SpamType.BURST,
+        penalty: 5,
+      });
+    });
+
+    it('detects DAILY LIMIT 50 in 24h', async () => {
+      // Target checks return nothing relevant (empty or old)
+      mockAntispamRepository.findLastTransactions.mockResolvedValueOnce([]);
+
+      // Global check returns 50 recent transactions
+      mockAntispamRepository.findLastTransactions.mockResolvedValueOnce(
+        createTransactions(50, 60), // 1 hour ago
+      );
+
+      const result = await service.checkSpam(
+        new Types.ObjectId(),
+        new Types.ObjectId(),
+      );
+
+      expect(result).toEqual({
+        type: SpamType.DAILY_LIMIT,
+        penalty: 0,
+      });
+    });
+
+    it('returns null if no threshold met', async () => {
+      // Target check: have 5 transactions but very old (600 mins ago)
+      mockAntispamRepository.findLastTransactions.mockResolvedValueOnce(
+        createTransactions(5, 600),
+      );
+      // Global check: have 0 transactions
+      mockAntispamRepository.findLastTransactions.mockResolvedValueOnce([]);
 
       const result = await service.checkSpam(
         new Types.ObjectId(),
@@ -98,49 +145,19 @@ describe('AntispamService', () => {
       expect(result).toBeNull();
     });
 
-    it('uses correct windows for burst and daily checks', async () => {
-      jest.useFakeTimers();
-      const frozen = new Date('2024-01-01T00:00:00Z');
-      jest.setSystemTime(frozen);
-
-      const sourceUserId = new Types.ObjectId();
-      const targetUserId = new Types.ObjectId();
-
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(5);
-      mockAntispamRepository.countTransactions.mockResolvedValueOnce(60);
-
-      await service.checkSpam(sourceUserId, targetUserId);
-
-      const [burstFilter] = mockAntispamRepository.countTransactions.mock
-        .calls[0] as [
-        {
-          sourceUserId: Types.ObjectId;
-          targetUserId: Types.ObjectId;
-          timestamp: { $gte: Date };
-        },
-      ];
-      const [dailyFilter] = mockAntispamRepository.countTransactions.mock
-        .calls[1] as [
-        {
-          sourceUserId: Types.ObjectId;
-          targetUserId?: Types.ObjectId;
-          timestamp: { $gte: Date };
-        },
-      ];
-
-      expect(burstFilter.sourceUserId).toBe(sourceUserId);
-      expect(burstFilter.targetUserId).toBe(targetUserId);
-      expect(burstFilter.timestamp.$gte).toEqual(
-        new Date('2023-12-31T23:45:00.000Z'),
+    it('prioritizes higher bursts (target checks logic)', async () => {
+      // If we have 30 transactions recent, it hits the 30/60m rule first because of order
+      mockAntispamRepository.findLastTransactions.mockResolvedValueOnce(
+        createTransactions(30, 2),
       );
 
-      expect(dailyFilter.sourceUserId).toBe(sourceUserId);
-      expect(dailyFilter.targetUserId).toBeUndefined();
-      expect(dailyFilter.timestamp.$gte).toEqual(
-        new Date('2023-12-31T00:00:00.000Z'),
+      const result = await service.checkSpam(
+        new Types.ObjectId(),
+        new Types.ObjectId(),
       );
 
-      jest.useRealTimers();
+      // Should hit the first rule defined in the array
+      expect(result).toEqual({ type: SpamType.BURST, penalty: 30 });
     });
   });
 

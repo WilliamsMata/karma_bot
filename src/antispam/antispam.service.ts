@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Types, FilterQuery } from 'mongoose';
-import { KarmaTransaction } from './schemas/karma-transaction.schema';
+import { Types } from 'mongoose';
 import { AntispamRepository } from './antispam.repository';
 import { UsersService } from '../users/users.service';
 
@@ -9,16 +8,59 @@ export enum SpamType {
   DAILY_LIMIT = 'DAILY_LIMIT',
 }
 
+interface SpamRule {
+  name: string;
+  type: SpamType;
+  windowMinutes: number;
+  threshold: number;
+  penalty: number;
+  targetSpecific: boolean;
+}
+
+export interface SpamCheckResult {
+  type: SpamType;
+  penalty: number;
+}
+
 @Injectable()
 export class AntispamService {
   private readonly logger = new Logger(AntispamService.name);
 
-  // Constants for thresholds
-  private readonly BURST_THRESHOLD = 10;
-  private readonly BURST_WINDOW_MINUTES = 15;
-
-  private readonly DAILY_THRESHOLD = 50;
-  private readonly DAILY_WINDOW_HOURS = 24;
+  // Rules are ordered by threshold descending to catch the most severe (or accumulated) spam first if multiple thresholds are met.
+  private readonly rules: SpamRule[] = [
+    {
+      name: 'Burst: 30 in 60m',
+      type: SpamType.BURST,
+      windowMinutes: 60,
+      threshold: 30,
+      penalty: 30,
+      targetSpecific: true,
+    },
+    {
+      name: 'Burst: 10 in 15m',
+      type: SpamType.BURST,
+      windowMinutes: 15,
+      threshold: 10,
+      penalty: 10,
+      targetSpecific: true,
+    },
+    {
+      name: 'Burst: 5 in 7m',
+      type: SpamType.BURST,
+      windowMinutes: 7,
+      threshold: 5,
+      penalty: 5,
+      targetSpecific: true,
+    },
+    {
+      name: 'Daily Limit',
+      type: SpamType.DAILY_LIMIT,
+      windowMinutes: 24 * 60,
+      threshold: 50,
+      penalty: 0,
+      targetSpecific: false,
+    },
+  ];
 
   constructor(
     private readonly antispamRepository: AntispamRepository,
@@ -42,28 +84,75 @@ export class AntispamService {
   async checkSpam(
     sourceUserId: Types.ObjectId,
     targetUserId: Types.ObjectId,
-  ): Promise<SpamType | null> {
-    // 1. Check Burst (actions to SAME target in 15 mins)
-    const burstCount = await this.countTransactions(
-      sourceUserId,
-      this.BURST_WINDOW_MINUTES,
-      'minutes',
-      targetUserId,
-    );
+  ): Promise<SpamCheckResult | null> {
+    // 1. Target Specific Checks (Burst)
+    const targetRules = this.rules.filter((r) => r.targetSpecific);
+    if (targetRules.length > 0) {
+      const maxTargetThreshold = Math.max(
+        ...targetRules.map((r) => r.threshold),
+      );
 
-    if (burstCount >= this.BURST_THRESHOLD) {
-      return SpamType.BURST;
+      const lastTargetTransactions =
+        await this.antispamRepository.findLastTransactions(
+          { sourceUserId, targetUserId },
+          maxTargetThreshold,
+        );
+
+      for (const rule of targetRules) {
+        if (lastTargetTransactions.length >= rule.threshold) {
+          // Check timestamp of the Nth transaction (index N-1)
+          const checkTx = lastTargetTransactions[rule.threshold - 1];
+          const windowCutoff = new Date(
+            Date.now() - rule.windowMinutes * 60000,
+          );
+
+          if (
+            checkTx &&
+            checkTx.timestamp &&
+            checkTx.timestamp > windowCutoff
+          ) {
+            this.logger.warn(
+              `Spam detected: Rule "${rule.name}" triggered for user ${sourceUserId.toString()}`,
+            );
+            return { type: rule.type, penalty: rule.penalty };
+          }
+        }
+      }
     }
 
-    // 2. Check Daily Limit (actions TOTAL in 24h)
-    const dailyCount = await this.countTransactions(
-      sourceUserId,
-      this.DAILY_WINDOW_HOURS,
-      'hours',
-    );
+    // 2. Global Checks (Daily Limit)
+    const globalRules = this.rules.filter((r) => !r.targetSpecific);
+    if (globalRules.length > 0) {
+      const maxGlobalThreshold = Math.max(
+        ...globalRules.map((r) => r.threshold),
+      );
 
-    if (dailyCount >= this.DAILY_THRESHOLD) {
-      return SpamType.DAILY_LIMIT;
+      // Optimization: For global limits, we just need to know if the Nth transaction is within the window.
+      const lastGlobalTransactions =
+        await this.antispamRepository.findLastTransactions(
+          { sourceUserId },
+          maxGlobalThreshold,
+        );
+
+      for (const rule of globalRules) {
+        if (lastGlobalTransactions.length >= rule.threshold) {
+          const checkTx = lastGlobalTransactions[rule.threshold - 1];
+          const windowCutoff = new Date(
+            Date.now() - rule.windowMinutes * 60000,
+          );
+
+          if (
+            checkTx &&
+            checkTx.timestamp &&
+            checkTx.timestamp > windowCutoff
+          ) {
+            this.logger.warn(
+              `Spam detected: Rule "${rule.name}" triggered for user ${sourceUserId.toString()}`,
+            );
+            return { type: rule.type, penalty: rule.penalty };
+          }
+        }
+      }
     }
 
     return null;
@@ -78,30 +167,5 @@ export class AntispamService {
     this.logger.warn(
       `User ${telegramUserId} has been banned until ${bannedUntil.toISOString()}`,
     );
-  }
-
-  private async countTransactions(
-    sourceUserId: Types.ObjectId,
-    value: number,
-    unit: 'minutes' | 'hours',
-    targetUserId?: Types.ObjectId,
-  ): Promise<number> {
-    const since = new Date();
-    if (unit === 'minutes') {
-      since.setMinutes(since.getMinutes() - value);
-    } else {
-      since.setHours(since.getHours() - value);
-    }
-
-    const filter: FilterQuery<KarmaTransaction> = {
-      sourceUserId,
-      timestamp: { $gte: since },
-    };
-
-    if (targetUserId) {
-      filter.targetUserId = targetUserId;
-    }
-
-    return this.antispamRepository.countTransactions(filter);
   }
 }

@@ -150,7 +150,10 @@ describe('KarmaService', () => {
       usersService.findOrCreate
         .mockResolvedValueOnce(senderDoc)
         .mockResolvedValueOnce(receiverDoc);
-      antispamService.checkSpam.mockResolvedValue(SpamType.BURST);
+      antispamService.checkSpam.mockResolvedValue({
+        type: SpamType.BURST,
+        penalty: 10,
+      });
 
       karmaRepository.updateReceiverKarma.mockResolvedValue(
         karmaDoc({ user: receiverDoc._id, karma: 0 }),
@@ -192,7 +195,10 @@ describe('KarmaService', () => {
       usersService.findOrCreate
         .mockResolvedValueOnce(senderDoc)
         .mockResolvedValueOnce(receiverDoc);
-      antispamService.checkSpam.mockResolvedValue(SpamType.BURST);
+      antispamService.checkSpam.mockResolvedValue({
+        type: SpamType.BURST,
+        penalty: 10,
+      });
 
       karmaRepository.updateReceiverKarma.mockResolvedValue(
         karmaDoc({ user: receiverDoc._id, karma: 0 }),
@@ -234,7 +240,10 @@ describe('KarmaService', () => {
       usersService.findOrCreate
         .mockResolvedValueOnce(senderDoc)
         .mockResolvedValueOnce(receiverDoc);
-      antispamService.checkSpam.mockResolvedValue(SpamType.DAILY_LIMIT);
+      antispamService.checkSpam.mockResolvedValue({
+        type: SpamType.DAILY_LIMIT,
+        penalty: 0,
+      });
 
       await expect(
         service.updateKarma({

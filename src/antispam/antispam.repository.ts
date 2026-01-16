@@ -21,4 +21,16 @@ export class AntispamRepository extends AbstractRepository<KarmaTransaction> {
   ): Promise<number> {
     return this.model.countDocuments(filter);
   }
+
+  async findLastTransactions(
+    filter: FilterQuery<KarmaTransaction>,
+    limit: number,
+  ): Promise<KarmaTransaction[]> {
+    return this.model
+      .find(filter)
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .select('timestamp')
+      .lean();
+  }
 }

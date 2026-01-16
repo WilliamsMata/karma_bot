@@ -58,17 +58,18 @@ export class KarmaService {
     }
 
     // 2. Anti-Spam Check
-    const spamType = await this.antispamService.checkSpam(
+    const spamCheck = await this.antispamService.checkSpam(
       senderUserDoc._id,
       receiverUserDoc._id,
     );
 
-    if (spamType) {
+    if (spamCheck) {
+      const { type: spamType, penalty } = spamCheck;
       await this.antispamService.applyBan(senderData.id);
 
       if (spamType === SpamType.BURST) {
-        const penaltyValue = -10;
-        const compensationValue = 10;
+        const penaltyValue = -Math.abs(penalty);
+        const compensationValue = Math.abs(penalty);
 
         // Penalty for Sender
         const penaltySenderHistory = this.buildHistoryEntry({
